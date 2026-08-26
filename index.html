@@ -868,9 +868,10 @@ const Poll = (function(){
     return rec;
   }
   function normalize(rec){
-    const out={round:0,votes:{}};
+    const out={round:0,votes:{},revealed:false};
     if(rec&&typeof rec==='object'){
       out.round=Number(rec.round)||0;
+      out.revealed=!!rec.revealed;
       if(rec.votes&&typeof rec.votes==='object')out.votes=rec.votes;
     }
     return out;
@@ -1105,9 +1106,15 @@ const Quiz=(function(){
       const maxCount=Math.max(...counts);
       const topCount=counts.filter(c=>c===maxCount).length;
       const isGood=topCount===1&&counts[r.correct]===maxCount;
-      verdict.textContent=isGood?'Nailed it.':'Not even close.';
-      verdict.className='verdict show '+(isGood?'good':'bad');
-    }else{
+      const nextClass='verdict show '+(isGood?'good':'bad');
+      /* only touch the DOM when the verdict actually changes. reassigning
+         the identical class on every poll tick was restarting the pulse
+         animation over and over, which read as it flashing on repeat. */
+      if(verdict.className!==nextClass){
+        verdict.textContent=isGood?'Nailed it.':'Not even close.';
+        verdict.className=nextClass;
+      }
+    }else if(verdict.className!=='verdict'){
       verdict.className='verdict';
       verdict.textContent='';
     }
