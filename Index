@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Same Line, Every Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;600&family=Libre+Baskerville:wght@400&family=Source+Sans+3:wght@400;600&display=swap">
+
+<script>
+/* ==================================================================
+   CFG — every word on screen lives here. Edit copy, nothing else.
+   ================================================================== */
+const CFG = {
+
+  /* ---- LIVE POLL (naming quiz only — nothing else needs network) ----
+     1. Create a JSONBin bin at jsonbin.io with this starting record:
+          { "round": 0, "votes": {} }
+     2. Paste the bin ID and master key below.
+     3. Host this file on any static host (Netlify drop, GitHub Pages,
+        S3 …) and paste that URL as voteUrl. Phones open <voteUrl>#vote.
+        The QR code encodes it. Presenter opens the plain URL.
+     NOTE: a file:// copy can run the talk fine, but the poll needs the
+     file served over http(s). If the network misbehaves, press 1-4 to
+     tally answers by hand — see FALLBACK below.                       */
+  POLL: {
+    binId:     'REPLACE_WITH_JSONBIN_BIN_ID',      // <<< PLACEHOLDER
+    masterKey: 'REPLACE_WITH_JSONBIN_MASTER_KEY',  // <<< PLACEHOLDER
+    voteUrl:   'REPLACE_WITH_HOSTED_URL',          // <<< PLACEHOLDER e.g. https://example.com/allhands.html
+    pollMs: 1600
+  },
+
+  /* ---- 1. RECAP ---- */
+  recap: {
+    chapterOneEyebrow: 'Chapter one',
+    chapterOneLine: 'Chapter one: we asked what we do.',
+    scatter: [
+      'innovation consulting', 'a matchmaking platform', 'AI for collaboration',
+      'we run challenges', 'an ecosystem builder', 'software plus services',
+      'open innovation', 'a network of experts', 'problem-solving at scale',
+      'a consultancy with tech', 'community management', 'a challenge platform',
+      'we connect people', 'digital transformation', 'a marketplace',
+      'innovation management', 'sourcing solutions', 'crowdsourcing',
+      'a services firm', 'workshop facilitation', 'we build networks',
+      'an AI platform', 'strategic advising', 'program design',
+      'collective intelligence'
+    ],
+    chapterTwoEyebrow: 'Chapter two',
+    chapterTwoLine: 'Chapter two: we told you what we are.',
+    claim: 'a system of action',
+    nots: ['Not a platform.', 'Not a consultancy.', 'Not a network.', 'Not a services firm.', 'Not a marketplace.']
+  },
+
+  /* ---- 2. NAMING QUIZ ---- */
+  quiz: {
+    eyebrow: 'Naming quiz',
+    joinTitle: 'Scan once. It follows along.',
+    joinSub: 'Four rounds, one code. Old name goes up, you pick the new one.',
+    joinFallback: 'No phone? Call it out.',
+    /* The four options stay in this order every round, so 1-4 never move. */
+    options: ['NetworkOS Source', 'NetworkOS Decide', 'NetworkOS Acquire', 'NetworkOS Intelligence'],
+    rounds: [
+      { old: 'CrowdVector',      correct: 0 },
+      { old: 'The evals thing',  correct: 1 },
+      { old: 'CORE',             correct: 2 },
+      { old: 'OG NetworkOS',     correct: 3 }
+    ],
+    promptLabel: 'Old name',
+    answerLabel: 'Correct'
+  },
+
+  /* ---- 3. WHY WE WENT NARROW ---- */
+  narrow: {
+    eyebrow: 'Why we went narrow',
+    callbackNote: 'We ruled these out on purpose.',
+    stat1: "LinkedIn's own performance data shows B2B campaigns built around a well-defined ideal customer profile deliver meaningfully higher return than broad targeting, by some measures as much as 68 percent higher.",
+    stat2: "Bain's research on B2B growth found that companies running focused, specific strategies grew revenue at roughly twice the industry average."
+  },
+
+  /* ---- 4. THE FOUR DECKS ---- */
+  decks: {
+    setupLine: 'Four real answers to the same question. Same company. All current.',
+    setupEyebrow: 'Four answers, one question',
+    one: {
+      headline: 'an AI-driven solution marketplace and innovation management platform',
+      sub: ['accelerate breakthroughs', 'scale transformative movements']
+    },
+    two: {
+      frame: 'Two operating brands under one company',
+      layer: 'AI agent-powered intelligence layer',
+      base: 'Layer 1: Innovation Management'
+    },
+    three: {
+      line: 'Collaboration.Ai connects what exists to what’s needed, and carries that knowledge through to solve an organization’s most pressing problems.'
+    },
+    four: {
+      lines: [
+        'Agentic intelligence, connecting people, data, and systems with customized skills',
+        'Marketplace connecting problem owners with problem solvers to find real solutions'
+      ]
+    },
+    gridLine1: 'Four decks. One company.',
+    gridLine2: 'All of it, right now, in current use.'
+  },
+
+  /* ---- 5. WHY THIS MATTERS ---- */
+  matters: {
+    anchor: '1977',
+    anchorNote: 'illusory truth effect, first documented',
+    stat: 'Companies with highly effective communication see 47% higher total returns to shareholders than the least effective communicators.'
+  },
+
+  /* ---- 6. THE SYSTEMIC ARGUMENT ---- */
+  systemic: {
+    thesis: 'Consistency is what builds credibility.'
+  },
+
+  /* ---- 7. CLOSE ---- */
+  close: {
+    anchorLine: 'Collaboration.Ai connects what exists to what’s needed, and carries that knowledge through to solve an organization’s most pressing problems.',
+    updateEyebrow: 'One practical update',
+    updates: ['Underway: a full website redesign.', 'In progress: evaluating agencies for a full rebrand.'],
+    final: 'Same line. Every room. Starting now.'
+  },
+
+  /* ---- VOTER PAGE (phones) ---- */
+  vote: {
+    title: 'Naming quiz',
+    waiting: 'Hang tight — the first round is about to go up.',
+    roundLabel: 'Round',
+    prompt: 'What do we call it now?',
+    locked: 'Locked in',
+    change: 'Tap another to change your answer.',
+    offline: 'Can’t reach the poll. Call your answer out instead.'
+  },
+
+  /* ---- FALLBACK / PRESENTER KEYS ---- */
+  keys: {
+    help: [
+      ['→ / Space / click', 'next beat'],
+      ['←', 'previous beat'],
+      ['1 – 4', 'add one vote by hand (quiz only)'],
+      ['0', 'clear hand-tallied votes for this round'],
+      ['N', 'toggle live poll on / off'],
+      ['?', 'this panel']
+    ]
+  }
+};
+</script>
+
+<style>
+/* ==================================================================
+   TOKENS — canonical "home base" system.
+   The four decks in section 4 deliberately break out of it.
+   Single committed visual world: a projected deck, not a themed page.
+   ================================================================== */
+:root{
+  --ink:#1C1F22;
+  --paper:#F2F0EC;
+  --accent:#8FB8C9;
+  --accent-ink:#3E6478;
+  --rule:#D3CFC5;          /* paper, nudged toward the accent */
+  --muted:#6C7479;         /* grey with a blue bias, chosen not inherited */
+  --stageframe:#0D0F10;
+  --display:'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* the four decks in section 4 use the sans nobody chooses on purpose */
+  --slide:Arial, Helvetica, 'Liberation Sans', sans-serif;
+  --r:2px 16px 2px 16px;   /* asymmetric corners, never uniform */
+  --r-sm:1px 10px 1px 10px;
+  --fade:380ms;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--stageframe);
+  color:var(--ink);
+  font-family:var(--display);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--accent-ink);outline-offset:3px}
+
+/* ---------- fixed 1280x720 stage, scaled to fit ---------- */
+#shell{position:fixed;inset:0;display:grid;place-items:center}
+#stage{
+  position:relative;width:1280px;height:720px;flex:none;
+  transform-origin:center center;
+  background:var(--paper);
+  overflow:hidden;
+}
+.scene{
+  position:absolute;inset:0;
+  opacity:0;visibility:hidden;
+  transition:opacity var(--fade) ease;
+}
+.scene.on{opacity:1;visibility:visible}
+
+/* ---------- canonical scene furniture ---------- */
+.pad{position:absolute;inset:0;padding:72px 88px;display:flex;flex-direction:column;overflow:hidden}
+.fitbox{overflow:hidden;display:flex;min-width:0}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--accent-ink);
+  display:flex;align-items:center;gap:12px;
+}
+.eyebrow::after{content:'';height:1px;width:56px;background:var(--accent)}
+.eyebrow.solo{justify-content:center}
+.eyebrow.solo::after{display:none}
+.mono-note{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--muted)}
+
+.reveal{opacity:0;transform:translateY(8px);transition:opacity 320ms ease, transform 320ms ease}
+.reveal.on{opacity:1;transform:none}
+
+.line-lg{font-size:52px;font-weight:500;line-height:1.12;letter-spacing:-.02em;text-wrap:balance}
+.line-md{font-size:34px;font-weight:400;line-height:1.2;letter-spacing:-.01em;color:var(--muted)}
+.claim{font-size:104px;font-weight:700;line-height:.98;letter-spacing:-.045em}
+.stat{font-size:40px;font-weight:400;line-height:1.28;letter-spacing:-.015em;max-width:19ch;text-wrap:pretty}
+.stat.wide{max-width:24ch}
+
+/* ---------- beat counter + help ---------- */
+#counter{
+  position:absolute;right:22px;bottom:18px;z-index:40;
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+  opacity:.6;font-variant-numeric:tabular-nums;
+  mix-blend-mode:difference;color:#8A8A8A;
+}
+#help{
+  position:absolute;left:22px;bottom:18px;z-index:40;
+  background:rgba(13,15,16,.92);color:var(--paper);
+  border-radius:var(--r-sm);padding:14px 18px;
+  font-family:var(--mono);font-size:12px;line-height:1.9;
+  display:none;
+}
+#help.on{display:block}
+#help b{color:var(--accent);font-weight:500;display:inline-block;min-width:150px}
+
+/* ==================================================================
+   1. RECAP
+   ================================================================== */
+.scatter{position:absolute;inset:0;transition:opacity var(--fade) ease}
+.scatter.gone{opacity:0}
+.scatter span{
+  position:absolute;font-family:var(--mono);white-space:nowrap;
+  color:var(--ink);
+}
+.recap-eb1{position:absolute;left:88px;top:72px;transition:opacity var(--fade) ease}
+.recap-eb1.gone{opacity:0}
+.recap-a{position:absolute;left:88px;bottom:72px;max-width:780px;
+  transition:opacity var(--fade) ease}
+.recap-a.gone{opacity:0}
+
+.recap-b .claim{margin-top:22px}
+.recap-b .sp1{flex:1}
+.recap-b .sp2{flex:.75}
+.notlist{list-style:none;display:flex;gap:34px;flex-wrap:wrap}
+.notlist li{
+  position:relative;font-size:25px;font-weight:500;letter-spacing:-.01em;
+  color:var(--muted);transition:color 260ms ease;
+}
+.notlist li::after{
+  content:'';position:absolute;left:-3px;right:-3px;top:52%;height:2px;
+  background:var(--accent-ink);transform:scaleX(0);transform-origin:left center;
+  transition:transform 280ms cubic-bezier(.3,.7,.3,1);
+}
+.notlist li.struck{color:#B0AB9F}
+.notlist li.struck::after{transform:scaleX(1)}
+
+/* ==================================================================
+   2. NAMING QUIZ
+   ================================================================== */
+.join{display:flex;gap:64px;align-items:center;margin:auto 0}
+.qrcard{
+  flex:none;background:#fff;padding:22px;border-radius:var(--r);
+  border:1px solid var(--rule);box-shadow:14px 14px 0 rgba(143,184,201,.28);
+}
+.qrcard canvas{display:block;width:268px;height:268px;image-rendering:pixelated}
+.qrfail{width:268px;height:268px;display:grid;place-items:center;text-align:center;
+  font-family:var(--mono);font-size:12px;color:var(--muted);padding:16px}
+.joinurl{
+  font-family:var(--mono);font-size:14px;color:var(--accent-ink);
+  word-break:break-all;max-width:420px;
+}
+.qhead{display:flex;align-items:baseline;justify-content:space-between;gap:24px}
+.qold{font-size:76px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.qcount{font-family:var(--mono);font-size:13px;color:var(--muted);
+  font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.qopts{list-style:none;display:flex;flex-direction:column;gap:14px;margin-top:auto}
+.qopt{
+  position:relative;display:grid;grid-template-columns:34px 1fr 62px;
+  align-items:center;gap:18px;padding:11px 16px;
+  border:1px solid var(--rule);border-radius:var(--r-sm);
+  background:rgba(255,255,255,.4);overflow:hidden;
+  transition:border-color 240ms ease, background 240ms ease;
+}
+.qopt .fill{
+  position:absolute;left:0;top:0;bottom:0;width:0;
+  background:rgba(143,184,201,.34);
+  transition:width 620ms cubic-bezier(.22,.75,.25,1);
+}
+.qopt > *{position:relative}
+.qopt .num{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.08em}
+.qopt .nm{font-size:27px;font-weight:500;letter-spacing:-.015em}
+.qopt .ct{font-family:var(--mono);font-size:15px;text-align:right;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.qopt.right{border-color:var(--accent-ink);background:rgba(255,255,255,.75)}
+.qopt.right .fill{background:rgba(62,100,120,.24)}
+.qopt.right .nm{font-weight:700}
+.qopt.right .ct{color:var(--ink)}
+.qopt .tag{
+  position:absolute;right:78px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--accent-ink);
+  opacity:0;transition:opacity 240ms ease;
+}
+.qopt.right .tag{opacity:1}
+.qstatus{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-top:16px;display:flex;gap:10px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent-ink)}
+.dot.off{background:#C86B4E}
+
+/* ---- shared cross-fade stack (setup card, and the scenes below) ---- */
+.narrow-wrap{margin:auto 0;position:relative;min-height:420px;display:grid}
+.narrow-layer{grid-area:1/1;opacity:0;transition:opacity var(--fade) ease;align-self:center}
+.narrow-layer.on{opacity:1}
+
+/* ==================================================================
+   3. WHY WE WENT NARROW — two columns. The ruled-out list stays put
+   on the left; the evidence for it swaps on the right, so each stat
+   is visibly defending those specific words.
+   ================================================================== */
+.split{margin:auto 0;display:grid;grid-template-columns:364px 1fr;min-height:428px}
+.split .col-l{align-self:stretch;padding-right:56px;border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;justify-content:center}
+.split .col-r{align-self:center;padding-left:52px;display:grid;min-height:340px}
+.narrow-list{list-style:none;display:flex;flex-direction:column;gap:11px}
+.narrow-list li{position:relative;font-size:26px;font-weight:500;color:#B0AB9F;width:max-content}
+.narrow-list li::after{content:'';position:absolute;left:-3px;right:-3px;top:52%;
+  height:2px;background:#C4BFB3}
+.rlayer{grid-area:1/1;align-self:center;opacity:0;transition:opacity var(--fade) ease}
+.rlayer.on{opacity:1}
+.sc3 .stat{color:#4B5359}
+
+/* ==================================================================
+   4. THE FOUR DECKS — four real documents, four different hands.
+   Each one is a deck somebody actually designed, with its own
+   typeface pairing, accent, layout convention and its own small
+   system of details (footer, rule, wordmark, page number) applied
+   consistently within itself. None of them is a caricature of a
+   trend. No ordinals: these are simultaneous, not a sequence.
+   Deck three is the throughline — it IS the canonical system.
+   ================================================================== */
+.deck{position:absolute;inset:0;width:1280px;height:720px;overflow:hidden}
+
+/* --- deck one — editorial hand: serif statement, deep green, centred.
+       Details: hairline footer, letterspaced wordmark, serif folio. --- */
+.d1{
+  background:#FBF8F3;color:#22201C;
+  font-family:'Source Sans 3','Source Sans Pro',Arial,sans-serif;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:104px 100px 52px;
+}
+.d1 .lead{width:58px;height:2px;background:#1F5C4A;flex:none;margin:auto 0 46px}
+.d1 .headbox{width:100%;height:auto;max-height:290px;flex:none;
+  align-items:flex-start;justify-content:center}
+.d1 h2{
+  font-family:'Libre Baskerville',Georgia,'Times New Roman',serif;
+  font-weight:400;font-size:44px;line-height:1.4;letter-spacing:-.004em;max-width:880px;
+}
+.d1 .subsbox{height:26px;flex:none;margin-top:40px;justify-content:center}
+.d1 .subs{display:flex;gap:18px;align-items:center;white-space:nowrap;
+  font-size:15px;font-weight:600;letter-spacing:.145em;text-transform:uppercase;color:#1F5C4A}
+.d1 .subs i{width:5px;height:5px;background:#1F5C4A;flex:none;transform:rotate(45deg)}
+.d1 .foot{margin-top:auto;width:100%;border-top:1px solid #DED8CB;padding-top:16px;
+  display:flex;justify-content:space-between;align-items:baseline}
+.d1 .foot .wm{font-size:11px;font-weight:600;letter-spacing:.22em;
+  text-transform:uppercase;color:#1F5C4A}
+.d1 .foot .pg{font-family:'Libre Baskerville',Georgia,serif;font-size:13px;color:#8E8778}
+
+/* --- deck two — tidy operations hand: grey header band, rust rule,
+       two ruled columns, mono markers, folio bottom-left. --- */
+.d2{
+  background:#FFFFFF;color:#2A2E33;
+  font-family:'IBM Plex Sans','Helvetica Neue',Arial,sans-serif;
+  display:flex;flex-direction:column;
+}
+.d2 .band{background:#F1F0ED;border-bottom:3px solid #A8501C;
+  padding:60px 88px 42px;flex:none}
+.d2 .band .headbox{width:100%;height:auto;max-height:154px;align-items:flex-start}
+.d2 h2{font-family:inherit;font-weight:600;font-size:36px;line-height:1.24;
+  letter-spacing:-.012em}
+.d2 .cols{display:grid;grid-template-columns:1fr 1fr;padding:0 88px;margin-top:56px;flex:1}
+.d2 .col{padding-right:44px;display:flex;flex-direction:column;justify-content:center}
+.d2 .col+.col{border-left:1px solid #E5E3DF;padding:0 0 0 44px;
+  display:flex;flex-direction:column;justify-content:center}
+.d2 .col .mk{font-family:var(--mono);font-size:12px;font-weight:600;
+  letter-spacing:.2em;color:#A8501C}
+.d2 .col p{margin-top:22px;font-size:26px;line-height:1.42;color:#3C424A}
+.d2 .foot{margin:0 88px 44px;border-top:1px solid #E5E3DF;padding-top:15px;
+  display:flex;justify-content:space-between;align-items:baseline}
+.d2 .foot .pg{font-family:var(--mono);font-size:12px;color:#9DA1A7}
+.d2 .foot .wm{font-size:11px;font-weight:600;letter-spacing:.22em;
+  text-transform:uppercase;color:#6E747C}
+
+/* --- deck three: the canonical system itself, restrained --- */
+.d3{background:var(--paper);color:var(--ink)}
+.d3 .hr{position:absolute;left:88px;top:96px;width:96px;height:2px;background:var(--accent)}
+.d3 .fitbox{position:absolute;left:88px;right:120px;top:150px;bottom:150px;
+  height:auto;width:auto;align-items:center}
+.d3 p{font-size:46px;font-weight:400;line-height:1.26;letter-spacing:-.018em;max-width:960px}
+
+/* --- deck four — default-template hand: cool grey, everything bold,
+       navy marks, icon-and-label rows, big folio bottom-right. --- */
+.d4{
+  background:#EDF0F3;color:#2C333C;font-family:var(--slide);
+  display:flex;flex-direction:column;padding:92px 96px 52px;
+}
+.d4 .wm{font-size:38px;font-weight:700;letter-spacing:-.022em;color:#24406E}
+.d4 .wmrule{width:126px;height:4px;background:#24406E;margin-top:18px;flex:none}
+.d4 .rows{margin:auto 0;display:flex;flex-direction:column}
+.d4 .row{display:flex;gap:30px;align-items:flex-start;padding:38px 0;
+  border-bottom:1px solid #D9E0E7}
+.d4 .row:first-child{border-top:1px solid #D9E0E7}
+.d4 .gl{width:30px;height:30px;flex:none;margin-top:3px;background:#24406E}
+.d4 .row:last-child .gl{background:none;border:5px solid #24406E;border-radius:50%}
+.d4 .row p{font-size:25px;font-weight:400;line-height:1.44}
+.d4 .pg{margin-top:auto;text-align:right;font-size:16px;font-weight:700;color:#24406E}
+
+/* --- thumbnail grid --- */
+.gridwrap{position:absolute;left:88px;top:84px;display:grid;
+  grid-template-columns:repeat(2,435.2px);gap:24px 34px}
+.thumb{position:relative;width:435.2px;height:244.8px;overflow:hidden;
+  border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--paper)}
+.thumb .deck{transform:scale(.34);transform-origin:top left}
+.gridcap{position:absolute;left:88px;bottom:54px;right:88px;display:grid}
+.gridcap p{grid-area:1/1;font-size:36px;font-weight:500;letter-spacing:-.02em;
+  opacity:0;transition:opacity var(--fade) ease;align-self:end}
+.gridcap p.on{opacity:1}
+
+/* ==================================================================
+   SHARED TYPE SCALE
+   ================================================================== */
+.big{font-size:56px;font-weight:500;line-height:1.16;letter-spacing:-.028em;text-wrap:balance}
+
+/* ==================================================================
+   5. WHY THIS MATTERS — a citation card. Left aligned, and the
+   number does the talking: the year, then the figure.
+   ================================================================== */
+.sc5 .cite{margin-top:auto;display:grid;min-height:372px}
+.clayer{grid-area:1/1;align-self:end;opacity:0;
+  transition:opacity var(--fade) ease;display:flex;flex-direction:column;align-items:flex-start}
+.clayer.on{opacity:1}
+.bignum{font-size:168px;font-weight:700;line-height:.86;letter-spacing:-.055em;
+  color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.cnote{font-family:var(--mono);font-size:15px;letter-spacing:.07em;color:var(--muted);
+  margin-top:30px}
+.crest{font-size:31px;font-weight:400;line-height:1.36;letter-spacing:-.012em;
+  color:#4B5359;max-width:840px;margin-top:30px;padding-top:30px;
+  border-top:1px solid var(--rule)}
+
+/* ==================================================================
+   6. THE SYSTEMIC ARGUMENT — the emptiest frame in the file, then
+   the only full-ink line in it.
+   ================================================================== */
+.sc6 .empt{margin:auto 0;display:grid;min-height:428px}
+.thesis{color:var(--ink);font-weight:700;font-size:78px;line-height:1.04;
+  letter-spacing:-.044em;text-wrap:balance}
+
+/* ==================================================================
+   7. CLOSE — a bordered landing card, canonical asymmetric corners.
+   ================================================================== */
+.sc7 .closecard{
+  margin:auto;width:948px;height:456px;position:relative;
+  border:1px solid var(--rule);border-radius:var(--r);background:#F8F6F2;
+  padding:58px 68px;display:grid;
+}
+.sc7 .closecard::before{
+  content:'';position:absolute;left:50%;top:-1px;transform:translateX(-50%);
+  width:64px;height:2px;background:var(--accent);
+}
+.clayer7{grid-area:1/1;opacity:0;transition:opacity var(--fade) ease;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.clayer7.on{opacity:1}
+.closeline{font-size:44px;font-weight:400;line-height:1.24;letter-spacing:-.02em;text-wrap:balance}
+.finalline{font-size:62px;font-weight:700;line-height:1.08;letter-spacing:-.04em;text-wrap:balance}
+.updates{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--rule);
+  width:100%;max-width:660px;text-align:left}
+.updates div{display:flex;gap:22px;align-items:baseline;padding:22px 4px;
+  border-bottom:1px solid var(--rule)}
+.updates .n{flex:none;width:22px;height:2px;background:var(--accent);transform:translateY(-8px)}
+.updates .t{font-size:25px;font-weight:400;letter-spacing:-.01em}
+
+/* ==================================================================
+   VOTER PAGE (phones)
+   ================================================================== */
+#voteApp{display:none;position:fixed;inset:0;background:var(--paper);color:var(--ink);
+  overflow-y:auto;padding:26px 20px 40px}
+body.voting{overflow:auto;background:var(--paper)}
+body.voting #shell{display:none}
+body.voting #voteApp{display:block}
+.vwrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.vhead{display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:1px solid var(--rule);padding-bottom:14px}
+.vhead .t{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-ink)}
+.vhead .r{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted)}
+.vold{font-size:clamp(34px,11vw,54px);font-weight:700;letter-spacing:-.04em;line-height:1.02}
+.vprompt{font-size:16px;color:var(--muted)}
+.vopts{display:flex;flex-direction:column;gap:12px}
+.vbtn{
+  display:grid;grid-template-columns:30px 1fr;gap:14px;align-items:center;
+  text-align:left;font-family:var(--display);font-size:20px;font-weight:500;
+  letter-spacing:-.01em;color:var(--ink);background:#fff;
+  border:1px solid var(--rule);border-radius:var(--r-sm);
+  padding:18px 16px;cursor:pointer;min-height:64px;
+  transition:border-color 200ms ease, background 200ms ease;
+}
+.vbtn .n{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.vbtn[aria-pressed="true"]{border-color:var(--accent-ink);background:rgba(143,184,201,.24)}
+.vbtn[aria-pressed="true"] .n{color:var(--accent-ink)}
+.vbtn:disabled{opacity:.55;cursor:default}
+.vnote{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--muted)}
+.vnote.warn{color:#A5482B}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition-duration:1ms !important;animation-duration:1ms !important}
+}
+</style>
+</head>
+<body>
+
+<div id="shell">
+  <div id="stage" aria-live="polite"></div>
+</div>
+<div id="counter"></div>
+<div id="help"></div>
+
+<div id="voteApp"><div class="vwrap" id="vwrap"></div></div>
+
+<script>
+/* ==================================================================
+   QR ENCODER — inline so the file stays self-contained.
+   Byte mode, ECC level M, versions 1-14. Adapted from the standard
+   algorithm (Nayuki's formulation of ISO/IEC 18004).
+   ================================================================== */
+const QR = (function(){
+  const ECC_PER_BLOCK = [null,10,16,26,18,24,16,18,22,22,26,30,22,22,24]; // level M
+  const NUM_BLOCKS    = [null, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9]; // level M
+  const EXP=new Uint8Array(256), LOG=new Uint8Array(256);
+  (function(){let x=1;for(let i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&0x100)x^=0x11D;}EXP[255]=EXP[0];})();
+  const mul=(a,b)=> (a===0||b===0)?0:EXP[(LOG[a]+LOG[b])%255];
+
+  function rawDataModules(v){
+    let r=(16*v+128)*v+64;
+    if(v>=2){const n=Math.floor(v/7)+2;r-=(25*n-10)*n-55;if(v>=7)r-=36;}
+    return r;
+  }
+  const totalCodewords=v=>Math.floor(rawDataModules(v)/8);
+  function dataCapacityBytes(v){
+    return totalCodewords(v)-ECC_PER_BLOCK[v]*NUM_BLOCKS[v];
+  }
+  function alignPositions(v,size){
+    if(v===1)return[];
+    const n=Math.floor(v/7)+2;
+    const step=Math.ceil((v*4+4)/(n*2-2))*2;
+    const out=[6];
+    for(let p=size-7;out.length<n;p-=step)out.splice(1,0,p);
+    return out;
+  }
+  function rsGen(deg){
+    let g=new Uint8Array(deg);g[deg-1]=1;let root=1;
+    for(let i=0;i<deg;i++){
+      for(let j=0;j<deg;j++){
+        g[j]=mul(g[j],root);
+        if(j+1<deg)g[j]^=g[j+1];
+      }
+      root=mul(root,0x02);
+    }
+    return g;
+  }
+  function rsRemainder(data,gen){
+    const res=new Uint8Array(gen.length);
+    for(const b of data){
+      const f=b^res[0];
+      res.copyWithin(0,1);res[res.length-1]=0;
+      for(let i=0;i<gen.length;i++)res[i]^=mul(gen[i],f);
+    }
+    return res;
+  }
+
+  function encode(text){
+    const bytes=new TextEncoder().encode(text);
+    let v=0;
+    for(let i=1;i<=14;i++){
+      const cc=(i<10)?8:16;
+      if(dataCapacityBytes(i)*8 >= 4+cc+bytes.length*8){v=i;break;}
+    }
+    if(!v) throw new Error('too long for QR v14/M');
+
+    /* bit stream */
+    const bits=[];
+    const push=(val,len)=>{for(let i=len-1;i>=0;i--)bits.push((val>>>i)&1);};
+    push(4,4);                       // byte mode
+    push(bytes.length,(v<10)?8:16);
+    for(const b of bytes)push(b,8);
+    const cap=dataCapacityBytes(v)*8;
+    push(0,Math.min(4,cap-bits.length));
+    while(bits.length%8)bits.push(0);
+    const pad=[0xEC,0x11];
+    for(let i=0;bits.length<cap;i++)push(pad[i%2],8);
+
+    const dataCw=new Uint8Array(bits.length/8);
+    bits.forEach((b,i)=>{if(b)dataCw[i>>>3]|=0x80>>>(i&7);});
+
+    /* blocks + interleave */
+    const nb=NUM_BLOCKS[v], ecLen=ECC_PER_BLOCK[v];
+    const total=totalCodewords(v), dataLen=total-ecLen*nb;
+    const shortLen=Math.floor(dataLen/nb), numShort=nb-(dataLen%nb);
+    const gen=rsGen(ecLen), blocks=[];
+    let off=0;
+    for(let i=0;i<nb;i++){
+      const len=shortLen+(i<numShort?0:1);
+      const d=dataCw.slice(off,off+len);off+=len;
+      blocks.push({d,e:rsRemainder(d,gen)});
+    }
+    const out=[];
+    for(let i=0;i<shortLen+1;i++)
+      for(let b=0;b<nb;b++){
+        if(i<blocks[b].d.length)out.push(blocks[b].d[i]);
+      }
+    for(let i=0;i<ecLen;i++)
+      for(let b=0;b<nb;b++)out.push(blocks[b].e[i]);
+
+    /* matrix */
+    const size=v*4+17;
+    const m=Array.from({length:size},()=>new Array(size).fill(false));
+    const fn=Array.from({length:size},()=>new Array(size).fill(false));
+    const set=(x,y,d)=>{m[y][x]=!!d;fn[y][x]=true;};
+
+    function finder(cx,cy){
+      for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){
+        const x=cx+dx,y=cy+dy,d=Math.max(Math.abs(dx),Math.abs(dy));
+        if(x>=0&&x<size&&y>=0&&y<size)set(x,y,d!==2&&d!==4);
+      }
+    }
+    for(let i=0;i<size;i++){set(6,i,i%2===0);set(i,6,i%2===0);}
+    finder(3,3);finder(size-4,3);finder(3,size-4);
+    const ap=alignPositions(v,size);
+    for(let i=0;i<ap.length;i++)for(let j=0;j<ap.length;j++){
+      if((i===0&&j===0)||(i===0&&j===ap.length-1)||(i===ap.length-1&&j===0))continue;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)
+        set(ap[i]+dx,ap[j]+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);
+    }
+    /* reserve format + version areas */
+    drawFormat(0);
+    if(v>=7){
+      let rem=v;
+      for(let i=0;i<12;i++)rem=(rem<<1)^((rem>>>11)*0x1F25);
+      const bitsv=(v<<12)|rem;
+      for(let i=0;i<18;i++){
+        const bit=((bitsv>>>i)&1)===1, a=size-11+i%3, b=Math.floor(i/3);
+        set(a,b,bit);set(b,a,bit);
+      }
+    }
+    function drawFormat(mask){
+      let data=(0<<3)|mask;              // level M formatBits = 0
+      let rem=data;
+      for(let i=0;i<10;i++)rem=(rem<<1)^((rem>>>9)*0x537);
+      const f=((data<<10)|rem)^0x5412;
+      const g=i=>((f>>>i)&1)===1;
+      for(let i=0;i<=5;i++)set(8,i,g(i));
+      set(8,7,g(6));set(8,8,g(7));set(7,8,g(8));
+      for(let i=9;i<15;i++)set(14-i,8,g(i));
+      for(let i=0;i<8;i++)set(size-1-i,8,g(i));
+      for(let i=8;i<15;i++)set(8,size-15+i,g(i));
+      set(8,size-8,true);
+    }
+
+    /* data placement */
+    let bi=0;const bitLen=out.length*8;
+    for(let right=size-1;right>=1;right-=2){
+      if(right===6)right=5;
+      for(let vert=0;vert<size;vert++){
+        for(let j=0;j<2;j++){
+          const x=right-j;
+          const upward=((right+1)&2)===0;
+          const y=upward?size-1-vert:vert;
+          if(!fn[y][x]&&bi<bitLen){
+            m[y][x]=((out[bi>>>3]>>>(7-(bi&7)))&1)===1;bi++;
+          }
+        }
+      }
+    }
+
+    /* mask selection */
+    const maskFn=[
+      (x,y)=>(x+y)%2===0,
+      (x,y)=>y%2===0,
+      (x,y)=>x%3===0,
+      (x,y)=>(x+y)%3===0,
+      (x,y)=>(Math.floor(y/2)+Math.floor(x/3))%2===0,
+      (x,y)=>(x*y)%2+(x*y)%3===0,
+      (x,y)=>((x*y)%2+(x*y)%3)%2===0,
+      (x,y)=>((x+y)%2+(x*y)%3)%2===0
+    ];
+    const applyMask=k=>{
+      for(let y=0;y<size;y++)for(let x=0;x<size;x++)
+        if(!fn[y][x]&&maskFn[k](x,y))m[y][x]=!m[y][x];
+    };
+    function penalty(){
+      let p=0;
+      const runLine=line=>{
+        let run=1;
+        for(let i=1;i<line.length;i++){
+          if(line[i]===line[i-1]){run++;if(run===5)p+=3;else if(run>5)p+=1;}
+          else run=1;
+        }
+      };
+      for(let y=0;y<size;y++)runLine(m[y]);
+      for(let x=0;x<size;x++)runLine(m.map(r=>r[x]));
+      for(let y=0;y<size-1;y++)for(let x=0;x<size-1;x++){
+        const c=m[y][x];
+        if(c===m[y][x+1]&&c===m[y+1][x]&&c===m[y+1][x+1])p+=3;
+      }
+      let dark=0;
+      for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(m[y][x])dark++;
+      const pct=dark*100/(size*size);
+      p+=Math.floor(Math.abs(pct-50)/5)*10;
+      return p;
+    }
+    let best=-1,bestP=Infinity;
+    for(let k=0;k<8;k++){
+      applyMask(k);drawFormat(k);
+      const p=penalty();
+      if(p<bestP){bestP=p;best=k;}
+      applyMask(k);
+    }
+    applyMask(best);drawFormat(best);
+    return m;
+  }
+
+  function draw(canvas,text,quiet){
+    const m=encode(text),n=m.length,q=quiet==null?4:quiet,dim=n+q*2;
+    const scale=Math.max(2,Math.floor(560/dim));
+    canvas.width=canvas.height=dim*scale;
+    const c=canvas.getContext('2d');
+    c.fillStyle='#ffffff';c.fillRect(0,0,canvas.width,canvas.height);
+    c.fillStyle='#0D0F10';
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++)
+      if(m[y][x])c.fillRect((x+q)*scale,(y+q)*scale,scale,scale);
+    return m;
+  }
+  return {encode,draw};
+})();
+</script>
+
+<script>
+/* ==================================================================
+   POLL — JSONBin. Record shape:
+     { round: 1, votes: { "1": { "<voterId>": <optionIndex> }, ... } }
+   Keying by voter id makes a lost read-modify-write self-healing:
+   each phone re-writes its own entry until it sees itself in the bin.
+   ================================================================== */
+const Poll = (function(){
+  const P=CFG.POLL;
+  const base='https://api.jsonbin.io/v3/b/'+P.binId;
+  const configured=()=>!/^REPLACE_WITH/.test(P.binId)&&!/^REPLACE_WITH/.test(P.masterKey);
+  const H=()=>({'Content-Type':'application/json','X-Master-Key':P.masterKey,'X-Bin-Meta':'false'});
+
+  async function read(){
+    const r=await fetch(base+'/latest',{headers:H(),cache:'no-store'});
+    if(!r.ok)throw new Error('read '+r.status);
+    const j=await r.json();
+    const rec=(j&&j.record!==undefined)?j.record:j;
+    return normalize(rec);
+  }
+  async function write(rec){
+    const r=await fetch(base,{method:'PUT',headers:Object.assign(H(),{'X-Bin-Versioning':'false'}),body:JSON.stringify(rec)});
+    if(!r.ok)throw new Error('write '+r.status);
+    return rec;
+  }
+  function normalize(rec){
+    const out={round:0,votes:{}};
+    if(rec&&typeof rec==='object'){
+      out.round=Number(rec.round)||0;
+      if(rec.votes&&typeof rec.votes==='object')out.votes=rec.votes;
+    }
+    return out;
+  }
+  return {configured,read,write,normalize};
+})();
+</script>
+
+<script>
+/* ==================================================================
+   PRESENTER DECK
+   ================================================================== */
+(function(){
+const isVoter=location.hash==='#vote';
+const stage=document.getElementById('stage');
+const counterEl=document.getElementById('counter');
+const helpEl=document.getElementById('help');
+const el=(t,c,h)=>{const n=document.createElement(t);if(c)n.className=c;if(h!=null)n.innerHTML=h;return n;};
+
+/* ---------- deterministic scatter positions ---------- */
+function lcg(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+
+/* ---------- type that survives whatever font actually loads ----------
+   Binary-searches font-size so the text fits its fixed-height box.
+   Re-runs once webfonts land, so metric differences never overflow.   */
+function fitText(node){
+  const box=node.parentElement;
+  const [max,min]=node.dataset.fit.split(',').map(Number);
+  /* data-fith lets a box size itself to its text and still cap the type */
+  const H=box.dataset.fith?+box.dataset.fith:box.clientHeight, W=box.clientWidth;
+  if(!H||!W)return;
+  const fits=()=>node.scrollHeight<=H&&node.scrollWidth<=W;
+  node.style.fontSize=max+'px';
+  if(fits())return;                          /* the intended size works */
+  let lo=min,hi=max,best=min;
+  for(let i=0;i<11;i++){
+    const mid=(lo+hi)/2;
+    node.style.fontSize=mid+'px';
+    if(fits()){best=mid;lo=mid;}else hi=mid;
+  }
+  node.style.fontSize=best+'px';
+  /* belt and braces: step down until it genuinely fits */
+  let guard=0;
+  while(best>min&&!fits()&&guard++<60){best-=1;node.style.fontSize=best+'px';}
+  best=Math.max(min,best-1);                 /* sub-pixel headroom */
+  node.style.fontSize=best.toFixed(2)+'px';
+}
+function runFits(){document.querySelectorAll('[data-fit]').forEach(fitText);}
+function fitBox(tag,cls,text,max,min,w,h,align){
+  const box=el('div','fitbox');
+  box.style.cssText='width:100%;height:'+h+'px;align-items:'+(align||'center')+';justify-content:center';
+  const n=el(tag,cls,text);
+  n.style.maxWidth=w+'px';
+  n.dataset.fit=max+','+min;
+  box.appendChild(n);
+  return box;
+}
+
+/* ---------- deck markup (shared by full scenes + thumbnails) ---------- */
+const D=CFG.decks;
+function deckOne(){
+  return `<div class="deck d1">
+    <div class="lead"></div>
+    <div class="fitbox headbox" data-fith="290"><h2 data-fit="44,24">${D.one.headline}</h2></div>
+    <div class="fitbox subsbox" data-fith="26"><div class="subs" data-fit="15,9">
+      <span>${D.one.sub[0]}</span><i></i><span>${D.one.sub[1]}</span></div></div>
+    <div class="foot"><span class="wm">Collaboration.Ai</span><span class="pg">04</span></div>
+  </div>`;
+}
+function deckTwo(){
+  return `<div class="deck d2">
+    <div class="band">
+      <div class="fitbox headbox" data-fith="154"><h2 data-fit="36,20">${D.two.frame}</h2></div>
+    </div>
+    <div class="cols">
+      <div class="col"><div class="mk">01</div><p>${D.two.layer}</p></div>
+      <div class="col"><div class="mk">02</div><p>${D.two.base}</p></div>
+    </div>
+    <div class="foot"><span class="pg">11 / 32</span><span class="wm">Collaboration.Ai</span></div>
+  </div>`;
+}
+function deckThree(){
+  return `<div class="deck d3">
+    <div class="hr"></div>
+    <div class="fitbox"><p data-fit="46,24">${D.three.line}</p></div></div>`;
+}
+function deckFour(){
+  return `<div class="deck d4">
+    <div class="wm">Collaboration.Ai</div>
+    <div class="wmrule"></div>
+    <div class="rows">
+      <div class="row"><span class="gl"></span><p>${D.four.lines[0]}</p></div>
+      <div class="row"><span class="gl"></span><p>${D.four.lines[1]}</p></div>
+    </div>
+    <div class="pg">7</div>
+  </div>`;
+}
+const DECKFN=[deckOne,deckTwo,deckThree,deckFour];
+
+/* ==================================================================
+   SCENES
+   ================================================================== */
+const SCENES=[];
+
+/* ---- 1. RECAP (7 beats) ---- */
+(function(){
+  const R=CFG.recap;
+  const node=el('div','scene sc-recap');
+  const scatter=el('div','scatter');
+  /* jittered 4x7 grid: reads as scattered, covers the frame evenly */
+  const rnd=lcg(20260826);
+  R.scatter.forEach((txt,idx)=>{
+    const s=el('span',null,txt);
+    s.style.fontSize=(15+Math.round(rnd()*10))+'px';
+    s.style.left=(2+(idx%4)*22+rnd()*3.5).toFixed(2)+'%';
+    s.style.top=(13+Math.floor(idx/4)*8+rnd()*3).toFixed(2)+'%';
+    s.style.opacity=(0.32+rnd()*0.34).toFixed(2);
+    s.style.transform='rotate('+((rnd()*9)-4.5).toFixed(1)+'deg)';
+    scatter.appendChild(s);
+  });
+  node.appendChild(scatter);
+
+  const eb1=el('div','recap-eb1');
+  eb1.appendChild(el('div','eyebrow',R.chapterOneEyebrow));
+  node.appendChild(eb1);
+
+  const a=el('div','recap-a');
+  a.appendChild(el('p','line-lg',R.chapterOneLine));
+  node.appendChild(a);
+
+  const b=el('div','pad recap-b');
+  b.appendChild(el('div','eyebrow',R.chapterTwoEyebrow));
+  b.appendChild(el('div','sp1'));
+  b.appendChild(el('p','line-md',R.chapterTwoLine));
+  b.appendChild(el('p','claim',R.claim));
+  b.appendChild(el('div','sp2'));
+  const ul=el('ul','notlist');
+  R.nots.forEach(t=>ul.appendChild(el('li',null,t)));
+  b.appendChild(ul);
+  b.style.transition='opacity var(--fade) ease';
+  node.appendChild(b);
+
+  SCENES.push({node,steps:7,apply(i){
+    scatter.classList.toggle('gone',i>0);
+    a.classList.toggle('gone',i>0);
+    eb1.classList.toggle('gone',i>0);
+    b.style.opacity=i>0?'1':'0';
+    ul.querySelectorAll('li').forEach((li,k)=>li.classList.toggle('struck',i-1>k));
+  }});
+})();
+
+/* ---- 2. NAMING QUIZ (1 + 4x2 = 9 beats) ---- */
+const Quiz=(function(){
+  const Q=CFG.quiz;
+  const node=el('div','scene sc-quiz');
+
+  /* join card */
+  const join=el('div','pad');
+  join.appendChild(el('div','eyebrow',Q.eyebrow));
+  const jrow=el('div','join');
+  const card=el('div','qrcard');
+  const cv=document.createElement('canvas');card.appendChild(cv);
+  const right=el('div');
+  const jt=el('p','line-lg',Q.joinTitle);
+  const js=el('p','line-md',Q.joinSub);js.style.cssText='margin-top:18px;font-size:24px';
+  const ju=el('p','joinurl');ju.style.marginTop='26px';ju.textContent=CFG.POLL.voteUrl+'#vote';
+  const jf=el('p','mono-note',Q.joinFallback);jf.style.marginTop='10px';
+  right.append(jt,js,ju,jf);
+  jrow.append(card,right);
+  join.appendChild(jrow);
+  node.appendChild(join);
+
+  /* round card */
+  const round=el('div','pad');
+  const head=el('div','qhead');
+  const eb=el('div','eyebrow','');
+  const ct=el('div','qcount','');
+  head.append(eb,ct);
+  round.appendChild(head);
+  const old=el('div','qold');old.style.marginTop='34px';
+  round.appendChild(old);
+  const opts=el('ul','qopts');
+  const rows=Q.options.map((name,k)=>{
+    const li=el('li','qopt');
+    li.innerHTML=`<span class="fill"></span><span class="num">${k+1}</span>`+
+      `<span class="nm">${name}</span><span class="tag">${Q.answerLabel}</span><span class="ct">0</span>`;
+    opts.appendChild(li);
+    return li;
+  });
+  round.appendChild(opts);
+  const status=el('div','qstatus');
+  status.innerHTML='<span class="dot"></span><span class="txt"></span>';
+  round.appendChild(status);
+  node.appendChild(round);
+
+  let qrDrawn=false;
+  const state={round:0,revealed:false,remote:{},manual:{},live:Poll.configured(),err:''};
+
+  function tally(r){
+    const counts=[0,0,0,0];
+    const rem=state.remote[r]||{};
+    Object.values(rem).forEach(v=>{const i=Number(v);if(i>=0&&i<4)counts[i]++;});
+    const man=state.manual[r]||[0,0,0,0];
+    return counts.map((c,i)=>c+man[i]);
+  }
+  function paint(){
+    if(state.round<1)return;
+    const r=CFG.quiz.rounds[state.round-1];
+    eb.textContent=`Round ${state.round} of ${CFG.quiz.rounds.length}`;
+    old.textContent=r.old;
+    const counts=tally(state.round);
+    const total=counts.reduce((a,b)=>a+b,0);
+    ct.textContent=`${total} ${total===1?'response':'responses'}`;
+    const max=Math.max(1,...counts);
+    rows.forEach((li,k)=>{
+      li.querySelector('.fill').style.width=(counts[k]/max*100)+'%';
+      li.querySelector('.ct').textContent=counts[k];
+      li.classList.toggle('right',state.revealed&&k===r.correct);
+    });
+    const dot=status.querySelector('.dot');
+    const txt=status.querySelector('.txt');
+    const ok=state.live&&!state.err;
+    dot.classList.toggle('off',!ok);
+    txt.textContent=ok?'Live':(state.err||'Offline — press 1–4 to tally by hand');
+  }
+
+  /* --- network loop --- */
+  let timer=null,pushedRound=null;
+  async function push(r){
+    pushedRound=r;
+    if(!state.live)return;
+    try{
+      const rec=await Poll.read();
+      rec.round=r;
+      if(!rec.votes)rec.votes={};
+      rec.votes[String(r)]={};                // fresh round, clean slate
+      await Poll.write(rec);
+      state.remote=rec.votes;state.err='';
+    }catch(e){state.err='Poll unreachable';}
+    paint();
+  }
+  async function tick(){
+    if(!state.live)return;
+    try{
+      const rec=await Poll.read();
+      state.remote=rec.votes||{};state.err='';
+    }catch(e){state.err='Poll unreachable';}
+    paint();
+  }
+  function startLoop(){
+    stopLoop();
+    if(!state.live)return;
+    timer=setInterval(tick,CFG.POLL.pollMs);
+  }
+  function stopLoop(){if(timer){clearInterval(timer);timer=null;}}
+
+  return {
+    node,steps:1+CFG.quiz.rounds.length*2,
+    apply(i){
+      const onJoin=i===0;
+      join.style.display=onJoin?'flex':'none';
+      round.style.display=onJoin?'none':'flex';
+      if(onJoin&&!qrDrawn){
+        qrDrawn=true;
+        const url=CFG.POLL.voteUrl+'#vote';
+        try{
+          if(/^REPLACE_WITH/.test(CFG.POLL.voteUrl))throw new Error('placeholder');
+          QR.draw(cv,url);
+        }catch(e){
+          cv.replaceWith(el('div','qrfail','Set POLL.voteUrl in the CFG block<br>to generate the QR code.'));
+        }
+      }
+      if(onJoin){
+        state.round=0;state.revealed=false;stopLoop();
+        if(pushedRound!==0)push(0);
+        return;
+      }
+      const idx=i-1;
+      const r=Math.floor(idx/2)+1;
+      state.round=r;state.revealed=idx%2===1;
+      paint();
+      if(pushedRound!==r){push(r);}
+      startLoop();
+    },
+    leave(){stopLoop();},
+    manualVote(k){
+      if(state.round<1)return false;
+      const key=String(state.round);
+      state.manual[key]=state.manual[key]||[0,0,0,0];
+      state.manual[key][k]++;paint();return true;
+    },
+    clearManual(){
+      if(state.round<1)return false;
+      state.manual[String(state.round)]=[0,0,0,0];paint();return true;
+    },
+    toggleLive(){
+      state.live=!state.live&&Poll.configured();
+      state.err='';
+      if(state.live){push(state.round);startLoop();}else stopLoop();
+      paint();return state.live;
+    }
+  };
+})();
+SCENES.push(Quiz);
+
+/* ---- 3. WHY WE WENT NARROW (3 beats) ---- */
+(function(){
+  const N=CFG.narrow;
+  const node=el('div','scene');
+  const pad=el('div','pad sc3');
+  pad.appendChild(el('div','eyebrow',N.eyebrow));
+
+  const split=el('div','split');
+  const left=el('div','col-l');
+  const ul=el('ul','narrow-list');
+  CFG.recap.nots.forEach(t=>ul.appendChild(el('li',null,t)));
+  const note=el('p','mono-note',N.callbackNote);note.style.marginTop='26px';
+  left.append(ul,note);
+
+  const right=el('div','col-r');
+  const r1=el('div','rlayer');
+  const b1=fitBox('p','stat',N.stat1,36,20,688,340,'center');
+  b1.style.justifyContent='flex-start';
+  r1.appendChild(b1);
+  const r2=el('div','rlayer');
+  const b2=fitBox('p','stat',N.stat2,36,20,688,340,'center');
+  b2.style.justifyContent='flex-start';
+  r2.appendChild(b2);
+  right.append(r1,r2);
+
+  split.append(left,right);
+  pad.appendChild(split);
+  node.appendChild(pad);
+  /* the list never leaves; only the right column changes */
+  SCENES.push({node,steps:3,apply(i){
+    r1.classList.toggle('on',i===1);
+    r2.classList.toggle('on',i===2);
+  }});
+})();
+
+/* ---- 4. THE FOUR DECKS (7 beats) ---- */
+(function(){
+  /* setup card */
+  const setup=el('div','scene');
+  const sp=el('div','pad');
+  sp.appendChild(el('div','eyebrow',D.setupEyebrow));
+  const sc=el('div','narrow-wrap');sc.style.textAlign='center';
+  sc.appendChild(fitBox('p','big',D.setupLine,56,30,1000,400));
+  sp.appendChild(sc);
+  setup.appendChild(sp);
+  SCENES.push({node:setup,steps:1,apply(){}});
+
+  /* four full-bleed decks */
+  DECKFN.forEach(fn=>{
+    const n=el('div','scene');
+    n.innerHTML=fn();
+    SCENES.push({node:n,steps:1,apply(){}});
+  });
+
+  /* thumbnail grid */
+  const g=el('div','scene');
+  const gp=el('div','pad');
+  gp.style.padding='0';
+  const grid=el('div','gridwrap');
+  DECKFN.forEach(fn=>{
+    const t=el('div','thumb');
+    t.innerHTML=fn();
+    grid.appendChild(t);
+  });
+  gp.appendChild(grid);
+  const cap=el('div','gridcap');
+  const c1=el('p',null,D.gridLine1);
+  const c2=el('p',null,D.gridLine2);
+  cap.append(c1,c2);
+  gp.appendChild(cap);
+  g.appendChild(gp);
+  SCENES.push({node:g,steps:2,apply(i){c1.classList.toggle('on',i===0);c2.classList.toggle('on',i===1);}});
+})();
+
+/* ---- 5. WHY THIS MATTERS (2 beats) ---- */
+(function(){
+  const M=CFG.matters;
+  const node=el('div','scene');
+  const pad=el('div','pad sc5');
+  const cite=el('div','cite');
+
+  const l1=el('div','clayer');
+  l1.appendChild(el('div','bignum',M.anchor));
+  l1.appendChild(el('p','cnote',M.anchorNote));
+
+  /* pull the figure out of the sentence rather than retyping it, so
+     editing the number in CFG keeps the callout and the prose in step */
+  const l2=el('div','clayer');
+  const hit=M.stat.match(/\d+(?:\.\d+)?%/);
+  if(hit){
+    l2.appendChild(el('div','bignum',hit[0]));
+    l2.appendChild(el('p','crest',
+      M.stat.replace(hit[0],'').replace(/\s{2,}/g,' ').trim()));
+  }else{
+    l2.appendChild(fitBox('p','big',M.stat,56,28,980,400));
+  }
+
+  cite.append(l1,l2);
+  pad.appendChild(cite);
+  node.appendChild(pad);
+  SCENES.push({node,steps:2,apply(i){[l1,l2].forEach((l,k)=>l.classList.toggle('on',k===i));}});
+})();
+
+/* ---- 6. DC RELATIONSHIP + SYSTEMIC ARGUMENT (2 beats) ---- */
+(function(){
+  const node=el('div','scene');
+  const pad=el('div','pad sc6');
+  const empt=el('div','empt');empt.style.textAlign='center';
+  const l1=el('div','narrow-layer');          /* deliberately empty */
+  const l2=el('div','narrow-layer');
+  l2.appendChild(fitBox('p','thesis',CFG.systemic.thesis,78,36,1000,420));
+  empt.append(l1,l2);
+  pad.appendChild(empt);
+  node.appendChild(pad);
+  SCENES.push({node,steps:2,apply(i){[l1,l2].forEach((l,k)=>l.classList.toggle('on',k===i));}});
+})();
+
+/* ---- 7. CLOSE (3 beats) ---- */
+(function(){
+  const C=CFG.close;
+  const node=el('div','scene');
+  const pad=el('div','pad sc7');
+  const card=el('div','closecard');
+
+  const l1=el('div','clayer7');
+  l1.appendChild(fitBox('p','closeline',C.anchorLine,44,24,780,320));
+
+  const l2=el('div','clayer7');
+  const eb=el('div','eyebrow solo',C.updateEyebrow);
+  eb.style.marginBottom='26px';
+  const box=el('div','updates');
+  C.updates.forEach(t=>{
+    const d=el('div');
+    d.appendChild(el('span','n'));
+    d.appendChild(el('span','t',t));
+    box.appendChild(d);
+  });
+  l2.append(eb,box);
+
+  const l3=el('div','clayer7');
+  l3.appendChild(fitBox('p','finalline',C.final,62,30,720,320));
+
+  card.append(l1,l2,l3);
+  pad.appendChild(card);
+  node.appendChild(pad);
+  SCENES.push({node,steps:3,apply(i){[l1,l2,l3].forEach((l,k)=>l.classList.toggle('on',k===i));}});
+})();
+
+/* ==================================================================
+   RUNTIME
+   ================================================================== */
+SCENES.forEach(s=>stage.appendChild(s.node));
+
+const BEATS=[];
+SCENES.forEach((s,si)=>{for(let i=0;i<s.steps;i++)BEATS.push({si,i});});
+let cur=-1;
+
+function go(n){
+  n=Math.max(0,Math.min(BEATS.length-1,n));
+  if(n===cur)return;
+  const prev=cur>=0?BEATS[cur].si:-1;
+  cur=n;
+  const b=BEATS[cur];
+  SCENES.forEach((s,k)=>{
+    const on=k===b.si;
+    s.node.classList.toggle('on',on);
+    if(!on&&k===prev&&s.leave)s.leave();
+  });
+  SCENES[b.si].apply(b.i);
+  counterEl.textContent=String(cur+1).padStart(2,'0')+' / '+BEATS.length;
+  if(!isVoter){try{history.replaceState(null,'','#b'+(cur+1));}catch(e){}}
+}
+
+/* ---- fit the 1280x720 stage ---- */
+function fit(){
+  const s=Math.min(window.innerWidth/1280,window.innerHeight/720);
+  stage.style.transform='scale('+s+')';
+}
+window.addEventListener('resize',fit);
+
+/* ---- help panel ---- */
+helpEl.innerHTML=CFG.keys.help.map(([k,v])=>'<div><b>'+k+'</b>'+v+'</div>').join('');
+
+/* ---- input ---- */
+document.addEventListener('keydown',e=>{
+  const k=e.key;
+  if(k==='ArrowRight'||k==='PageDown'||k===' '||k==='Enter'){e.preventDefault();go(cur+1);}
+  else if(k==='ArrowLeft'||k==='PageUp'){e.preventDefault();go(cur-1);}
+  else if(k==='Home'){e.preventDefault();go(0);}
+  else if(k==='End'){e.preventDefault();go(BEATS.length-1);}
+  else if(k==='?'||k==='/'){helpEl.classList.toggle('on');}
+  else if(k>='1'&&k<='4'){if(BEATS[cur].si===1)Quiz.manualVote(Number(k)-1);}
+  else if(k==='0'){if(BEATS[cur].si===1)Quiz.clearManual();}
+  else if(k==='n'||k==='N'){if(BEATS[cur].si===1)Quiz.toggleLive();}
+});
+document.getElementById('shell').addEventListener('click',e=>{
+  if(e.target.closest('[data-nonav]'))return;
+  go(cur+1);
+});
+
+window.addEventListener('resize',runFits);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(runFits);
+window.addEventListener('load',runFits);
+
+if(!isVoter){
+  fit();
+  runFits();
+  const start=Number((location.hash.match(/^#b(\d+)$/)||[])[1]);
+  go(start?start-1:0);
+}
+
+/* ==================================================================
+   VOTER PAGE
+   ================================================================== */
+function bootVoter(){
+  const V=CFG.vote,Q=CFG.quiz;
+  document.body.classList.add('voting');
+  const w=document.getElementById('vwrap');
+
+  const head=el('div','vhead');
+  head.innerHTML='<span class="t">'+V.title+'</span><span class="r"></span>';
+  const old=el('div','vold');
+  const prompt=el('p','vprompt',V.waiting);
+  const opts=el('div','vopts');
+  const note=el('p','vnote');
+  w.append(head,old,prompt,opts,note);
+
+  const btns=Q.options.map((name,k)=>{
+    const b=el('button','vbtn');
+    b.type='button';b.setAttribute('aria-pressed','false');
+    b.innerHTML='<span class="n">'+(k+1)+'</span><span>'+name+'</span>';
+    b.addEventListener('click',()=>vote(k));
+    opts.appendChild(b);
+    return b;
+  });
+
+  let id=localStorage.getItem('cai_voter_id');
+  if(!id){id='v'+Math.random().toString(36).slice(2,10);localStorage.setItem('cai_voter_id',id);}
+  let round=0,myPick=null,pending=null,offline=false;
+
+  function render(){
+    head.querySelector('.r').textContent=round?V.roundLabel+' '+round+' / '+Q.rounds.length:'';
+    if(round){
+      old.textContent=Q.rounds[round-1].old;
+      prompt.textContent=V.prompt;
+    }else{
+      old.textContent='';
+      prompt.textContent=V.waiting;
+    }
+    btns.forEach((b,k)=>{
+      b.disabled=!round;
+      b.setAttribute('aria-pressed',String(myPick===k));
+    });
+    note.classList.toggle('warn',offline);
+    note.textContent=offline?V.offline:(myPick!=null?V.locked+'. '+V.change:'');
+  }
+  async function vote(k){
+    if(!round)return;
+    myPick=k;pending=k;render();
+    await sync(true);
+  }
+  async function sync(force){
+    if(!Poll.configured()){offline=true;render();return;}
+    try{
+      const rec=await Poll.read();
+      if(rec.round!==round){
+        round=rec.round;
+        myPick=null;pending=null;
+      }
+      const key=String(round);
+      const bucket=rec.votes[key]||{};
+      if(pending!=null&&(force||bucket[id]!==pending)){
+        rec.votes[key]=Object.assign({},bucket,{[id]:pending});
+        await Poll.write(rec);
+      }else if(bucket[id]!=null){
+        myPick=Number(bucket[id]);pending=myPick;
+      }
+      offline=false;
+    }catch(e){offline=true;}
+    render();
+  }
+  render();
+  sync(false);
+  setInterval(()=>sync(false),Math.max(1200,CFG.POLL.pollMs));
+}
+if(isVoter){bootVoter();}
+window.addEventListener('hashchange',()=>{
+  if(location.hash==='#vote'&&!document.body.classList.contains('voting'))bootVoter();
+});
+})();
+</script>
+</body>
+</html>
