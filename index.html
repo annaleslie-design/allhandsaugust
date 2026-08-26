@@ -17,7 +17,11 @@ const CFG = {
   /* ---- LIVE POLL (naming quiz only — nothing else needs network) ----
      1. Create a JSONBin bin at jsonbin.io with this starting record:
           { "round": 0, "votes": {} }
-     2. Paste the bin ID and master key below.
+     2. Create a scoped ACCESS KEY (not the Master Key) with Read + Update
+        permissions on Bins, and paste it below. JSONBin restricts CORS
+        for browser calls to Access Keys — the Master Key is server-only
+        and will be silently blocked by the browser, which looks like a
+        generic "Poll unreachable" / CORS error with no useful detail.
      3. Host this file on any static host (Netlify drop, GitHub Pages,
         S3 …) and paste that URL as voteUrl. Phones open <voteUrl>#vote.
         The QR code encodes it. Presenter opens the plain URL.
@@ -26,7 +30,7 @@ const CFG = {
      tally answers by hand — see FALLBACK below.                       */
   POLL: {
     binId:     '6a8f2ee2da38895dfe145f8d',
-    masterKey: '$2a$10$2eqTztrorIUw2exQ3tvgQuk0WrP48.GwnxYGowOoorZqDdYsqJUd2',
+    accessKey: '$2a$10$Erph9D.m7JKdklNySDtnKud7z8Drp3wfPQmFNhZZpF5IQwza.4kvm',
     voteUrl:   'https://annaleslie-design.github.io/allhandsaugust/',
     pollMs: 1600
   },
@@ -763,8 +767,8 @@ const QR = (function(){
 const Poll = (function(){
   const P=CFG.POLL;
   const base='https://api.jsonbin.io/v3/b/'+P.binId;
-  const configured=()=>!/^REPLACE_WITH/.test(P.binId)&&!/^REPLACE_WITH/.test(P.masterKey);
-  const H=()=>({'Content-Type':'application/json','X-Master-Key':P.masterKey,'X-Bin-Meta':'false'});
+  const configured=()=>!/^REPLACE_WITH/.test(P.binId)&&!/^REPLACE_WITH/.test(P.accessKey);
+  const H=()=>({'Content-Type':'application/json','X-Access-Key':P.accessKey,'X-Bin-Meta':'false'});
 
   async function read(){
     const r=await fetch(base+'/latest',{headers:H(),cache:'no-store'});
