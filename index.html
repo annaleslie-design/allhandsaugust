@@ -32,7 +32,11 @@ const CFG = {
     binId:     '6a8f2ee2da38895dfe145f8d',
     accessKey: '$2a$10$Erph9D.m7JKdklNySDtnKud7z8Drp3wfPQmFNhZZpF5IQwza.4kvm',
     voteUrl:   'https://annaleslie-design.github.io/allhandsaugust/',
-    pollMs: 1600
+    pollMs: 2200,
+    /* Phones matter much more for total request volume than the single
+       presenter screen does, since every phone in the room adds its own
+       stream of requests. This runs slower on purpose. */
+    phonePollMs: 4500
   },
 
   /* ---- 1. RECAP ---- */
@@ -322,6 +326,32 @@ body{
   text-transform:uppercase;color:var(--muted);margin-top:16px;display:flex;gap:10px;align-items:center}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-ink)}
 .dot.off{background:#C86B4E}
+
+/* the room's own verdict: reacts to whether the majority vote matched
+   the correct answer, not just whether it was displayed correctly */
+.verdict{
+  font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;display:inline-block;margin-top:14px;padding:8px 16px;
+  border-radius:var(--r-sm);opacity:0;transform:scale(.88);
+  transition:opacity 260ms ease, transform 260ms cubic-bezier(.34,1.56,.64,1);
+}
+.verdict.show{opacity:1;transform:scale(1)}
+.verdict.good{
+  background:rgba(143,184,201,.24);color:var(--accent-ink);
+  border:1px solid var(--accent);animation:verdictPulse 900ms ease 1;
+}
+.verdict.bad{
+  background:rgba(165,72,43,.14);color:#A5482B;
+  border:1px solid rgba(165,72,43,.45);animation:verdictShake 420ms ease 1;
+}
+@keyframes verdictPulse{0%{transform:scale(.88)}45%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes verdictShake{
+  0%,100%{transform:translateX(0) scale(1)}
+  20%{transform:translateX(-4px) scale(1)}
+  40%{transform:translateX(4px) scale(1)}
+  60%{transform:translateX(-3px) scale(1)}
+  80%{transform:translateX(3px) scale(1)}
+}
 
 /* ---- shared cross-fade stack (setup card, and the scenes below) ---- */
 .narrow-wrap{margin:auto 0;position:relative;min-height:420px;display:grid}
@@ -979,6 +1009,8 @@ const Quiz=(function(){
   const status=el('div','qstatus');
   status.innerHTML='<span class="dot"></span><span class="txt"></span>';
   round.appendChild(status);
+  const verdict=el('div','verdict');
+  round.appendChild(verdict);
   node.appendChild(round);
 
   let qrDrawn=false;
@@ -1010,6 +1042,20 @@ const Quiz=(function(){
     const ok=state.live&&!state.err;
     dot.classList.toggle('off',!ok);
     txt.textContent=ok?'Live':(state.err||'Offline — press 1–4 to tally by hand');
+
+    /* the verdict: did the room's own majority land on the right answer.
+       "good" requires the correct option to be the sole top vote-getter,
+       not just tied for it, so a genuine split doesn't read as a win. */
+    if(state.revealed&&total>0){
+      const maxCount=Math.max(...counts);
+      const topCount=counts.filter(c=>c===maxCount).length;
+      const isGood=topCount===1&&counts[r.correct]===maxCount;
+      verdict.textContent=isGood?'Nailed it.':'Not even close.';
+      verdict.className='verdict show '+(isGood?'good':'bad');
+    }else{
+      verdict.className='verdict';
+      verdict.textContent='';
+    }
   }
 
   /* --- network loop --- */
@@ -1374,7 +1420,10 @@ function bootVoter(){
   }
   render();
   sync(false);
-  setInterval(()=>sync(false),Math.max(1200,CFG.POLL.pollMs));
+  /* jittered so every phone in the room doesn't fire in the same instant,
+     which is what actually trips a rate limit even at a modest base rate */
+  const basePhoneMs=Math.max(2000,CFG.POLL.phonePollMs||CFG.POLL.pollMs);
+  setInterval(()=>sync(false),basePhoneMs*(0.85+Math.random()*0.3));
 }
 if(isVoter){bootVoter();}
 window.addEventListener('hashchange',()=>{
