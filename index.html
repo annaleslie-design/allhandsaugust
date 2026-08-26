@@ -24,12 +24,12 @@ const CFG = {
      NOTE: a file:// copy can run the talk fine, but the poll needs the
      file served over http(s). If the network misbehaves, press 1-4 to
      tally answers by hand — see FALLBACK below.                       */
-POLL: {
-  binId:     '6a8f2ee2da38895dfe145f8d',
-  masterKey: '$2a$10$2eqTztrorIUw2exQ3tvgQuk0WrP48.GwnxYGowOoorZqDdYsqJUd2',
-  voteUrl:   'REPLACE_WITH_HOSTED_URL',          // <<< still needed
-  pollMs: 1600
-},,
+  POLL: {
+    binId:     '6a8f2ee2da38895dfe145f8d',
+    masterKey: '$2a$10$2eqTztrorIUw2exQ3tvgQuk0WrP48.GwnxYGowOoorZqDdYsqJUd2',
+    voteUrl:   'https://annaleslie-design.github.io/allhandsaugust/',
+    pollMs: 1600
+  },
 
   /* ---- 1. RECAP ---- */
   recap: {
@@ -162,7 +162,7 @@ POLL: {
   --accent-ink:#3E6478;
   --rule:#D3CFC5;          /* paper, nudged toward the accent */
   --muted:#6C7479;         /* grey with a blue bias, chosen not inherited */
-  --stageframe:#0D0F10;
+  --stageframe:#F2F0EC;
   --display:'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
   --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   /* the four decks in section 4 use the sans nobody chooses on purpose */
