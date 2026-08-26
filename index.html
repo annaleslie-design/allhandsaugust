@@ -144,6 +144,24 @@ const CFG = {
   },
 
   /* ---- FALLBACK / PRESENTER KEYS ---- */
+  /* ---- PERSONAL PHONE REACTIONS. Picked at random per phone per round,
+     so four rounds of the same person getting it right or wrong doesn't
+     repeat itself. Go as big as you want, this is the fun part. ---- */
+  reactions: {
+    good: [
+      { big: "YOU'RE AMAZING.", sub: 'Flawless. A legend, honestly.' },
+      { big: 'PERFECT.', sub: 'Somebody give this person a raise.' },
+      { big: 'INCREDIBLE.', sub: "They knew it. Of course they knew it." },
+      { big: 'GENIUS.', sub: 'History will remember this moment.' }
+    ],
+    bad: [
+      { big: 'OH NO.', sub: 'Devastating. Truly heartbreaking.' },
+      { big: 'YIKES.', sub: "This is fine. Everything is fine." },
+      { big: 'WRONG.', sub: 'An absolute travesty. Never forget this.' },
+      { big: 'BRUTAL.', sub: 'We do not speak of this again.' }
+    ]
+  },
+
   keys: {
     help: [
       ['→ / Space / click', 'next beat'],
@@ -554,6 +572,43 @@ body.voting #voteApp{display:block}
 .vbtn:disabled{opacity:.55;cursor:default}
 .vnote{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--muted)}
 .vnote.warn{color:#A5482B}
+
+/* the personal reaction. covers the whole phone, briefly, then clears. */
+.reaction-flash{
+  position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1.1rem;pointer-events:none;
+  opacity:0;padding:8vw;text-align:center;
+}
+.reaction-flash.show{animation:flashPop 1600ms ease forwards}
+.reaction-flash .rword{
+  font-family:var(--display);font-weight:700;font-size:clamp(2.6rem,14vw,4.8rem);
+  letter-spacing:-.03em;line-height:1.02;transform:scale(.6) rotate(-3deg);
+}
+.reaction-flash .rsub{
+  font-family:var(--display);font-weight:500;font-size:clamp(1.05rem,4.6vw,1.5rem);
+  letter-spacing:-.01em;opacity:0;max-width:26ch;
+}
+.reaction-flash.good{background:rgba(143,184,201,.96)}
+.reaction-flash.good .rword{color:var(--ink)}
+.reaction-flash.good .rsub{color:rgba(28,31,34,.72)}
+.reaction-flash.bad{background:rgba(165,72,43,.97)}
+.reaction-flash.bad .rword{color:#fff}
+.reaction-flash.bad .rsub{color:rgba(255,255,255,.82)}
+@keyframes flashPop{
+  0%{opacity:0}
+  6%{opacity:1}
+  90%{opacity:1}
+  100%{opacity:0}
+}
+.reaction-flash.show .rword{animation:rwordIn 560ms cubic-bezier(.28,1.85,.5,1) forwards}
+.reaction-flash.show .rsub{animation:rsubIn 420ms ease 260ms forwards}
+@keyframes rwordIn{
+  0%{transform:scale(.6) rotate(-3deg)}
+  55%{transform:scale(1.18) rotate(2deg)}
+  80%{transform:scale(.96) rotate(-1deg)}
+  100%{transform:scale(1) rotate(0)}
+}
+@keyframes rsubIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
 
 @media (prefers-reduced-motion: reduce){
   *{transition-duration:1ms !important;animation-duration:1ms !important}
@@ -1059,15 +1114,19 @@ const Quiz=(function(){
   }
 
   /* --- network loop --- */
-  let timer=null,pushedRound=null;
-  async function push(r){
-    pushedRound=r;
+  let timer=null,pushedRound=null,pushedRevealed=null;
+  async function pushState(r,revealed){
+    pushedRound=r;pushedRevealed=revealed;
     if(!state.live)return;
     try{
       const rec=await Poll.read();
       rec.round=r;
+      rec.revealed=revealed;
       if(!rec.votes)rec.votes={};
-      rec.votes[String(r)]={};                // fresh round, clean slate
+      /* only wipe this round's votes on the fresh-round beat, never on
+         the reveal beat, or a reveal would erase the very votes it's
+         supposed to be judging */
+      if(!revealed)rec.votes[String(r)]={};
       await Poll.write(rec);
       state.remote=rec.votes;state.err='';
     }catch(e){state.err='Poll unreachable';}
@@ -1106,14 +1165,15 @@ const Quiz=(function(){
       }
       if(onJoin){
         state.round=0;state.revealed=false;stopLoop();
-        if(pushedRound!==0)push(0);
+        if(pushedRound!==0)pushState(0,false);
         return;
       }
       const idx=i-1;
       const r=Math.floor(idx/2)+1;
-      state.round=r;state.revealed=idx%2===1;
+      const revealed=idx%2===1;
+      state.round=r;state.revealed=revealed;
       paint();
-      if(pushedRound!==r){push(r);}
+      if(pushedRound!==r||pushedRevealed!==revealed)pushState(r,revealed);
       startLoop();
     },
     leave(){stopLoop();},
@@ -1375,7 +1435,31 @@ function bootVoter(){
 
   let id=localStorage.getItem('cai_voter_id');
   if(!id){id='v'+Math.random().toString(36).slice(2,10);localStorage.setItem('cai_voter_id',id);}
-  let round=0,myPick=null,pending=null,offline=false;
+  let round=0,myPick=null,pending=null,offline=false,revealed=false,reactedFor=null;
+
+  /* full-screen personal reaction. lives at the body level, above the
+     card, so it covers the whole phone regardless of scroll position. */
+  const flash=el('div','reaction-flash');
+  flash.innerHTML='<div class="rword"></div><div class="rsub"></div>';
+  document.body.appendChild(flash);
+
+  function fireReaction(isRight){
+    const pool=CFG.reactions[isRight?'good':'bad'];
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    flash.querySelector('.rword').textContent=pick.big;
+    flash.querySelector('.rsub').textContent=pick.sub;
+    flash.className='reaction-flash show '+(isRight?'good':'bad');
+    /* haptic buzz. Android Chrome supports this; iOS Safari never has,
+       so iPhones get the full visual reaction with no vibration. */
+    if(navigator.vibrate)navigator.vibrate(isRight?60:[90,60,90,60,140]);
+    setTimeout(()=>flash.classList.remove('show'),1550);
+  }
+  function maybeReact(){
+    if(!revealed||myPick==null)return;
+    if(reactedFor===round)return;
+    reactedFor=round;
+    fireReaction(myPick===Q.rounds[round-1].correct);
+  }
 
   function render(){
     head.querySelector('.r').textContent=round?V.roundLabel+' '+round+' / '+Q.rounds.length:'';
@@ -1387,14 +1471,16 @@ function bootVoter(){
       prompt.textContent=V.waiting;
     }
     btns.forEach((b,k)=>{
-      b.disabled=!round;
+      /* locked out once the room's answer is revealed, so nobody can wait
+         for the reveal and then tap the right one to game the reaction */
+      b.disabled=!round||revealed;
       b.setAttribute('aria-pressed',String(myPick===k));
     });
     note.classList.toggle('warn',offline);
     note.textContent=offline?V.offline:(myPick!=null?V.locked+'. '+V.change:'');
   }
   async function vote(k){
-    if(!round)return;
+    if(!round||revealed)return;
     myPick=k;pending=k;render();
     await sync(true);
   }
@@ -1406,6 +1492,7 @@ function bootVoter(){
         round=rec.round;
         myPick=null;pending=null;
       }
+      revealed=!!rec.revealed;
       const key=String(round);
       const bucket=rec.votes[key]||{};
       if(pending!=null&&(force||bucket[id]!==pending)){
@@ -1417,6 +1504,7 @@ function bootVoter(){
       offline=false;
     }catch(e){offline=true;}
     render();
+    maybeReact();
   }
   render();
   sync(false);
