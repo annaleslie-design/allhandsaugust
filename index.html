@@ -15,19 +15,15 @@
 const CFG = {
 
   /* ---- LIVE POLL (naming quiz only — nothing else needs network) ----
-     1. Create a JSONBin bin at jsonbin.io with this starting record:
-          { "round": 0, "votes": {} }
-     2. Create a scoped ACCESS KEY (not the Master Key) with Read + Update
-        permissions on Bins, and paste it below. JSONBin restricts CORS
-        for browser calls to Access Keys — the Master Key is server-only
-        and will be silently blocked by the browser, which looks like a
-        generic "Poll unreachable" / CORS error with no useful detail.
-     3. Host this file on any static host (Netlify drop, GitHub Pages,
-        S3 …) and paste that URL as voteUrl. Phones open <voteUrl>#vote.
-        The QR code encodes it. Presenter opens the plain URL.
-     NOTE: a file:// copy can run the talk fine, but the poll needs the
-     file served over http(s). If the network misbehaves, press 1-4 to
-     tally answers by hand — see FALLBACK below.                       */
+     The bin must start out holding:  { "round": 0, "votes": {} }
+     accessKey needs BOTH "Read" and "Update" permissions on jsonbin —
+     phones write their own vote, so a read-only key will fail every
+     tap. Use masterKey instead of accessKey only if you have to; it is
+     all-permissions and it sits in a file you screenshare.
+     voteUrl is where this file is hosted. Phones open <voteUrl>#vote;
+     the QR encodes exactly that. The presenter opens the plain URL.
+     A file:// copy runs the talk fine but cannot reach the poll — press
+     1-4 to tally by hand in that case (see FALLBACK below).           */
   POLL: {
     binId:     '6a8f2ee2da38895dfe145f8d',
     accessKey: '$2a$10$Erph9D.m7JKdklNySDtnKud7z8Drp3wfPQmFNhZZpF5IQwza.4kvm',
@@ -112,6 +108,25 @@ const CFG = {
     gridLine2: 'All of it, right now, in current use.'
   },
 
+  /* ---- 4b. IN REAL WORDS ---- */
+  translate: {
+    ack: "Let’s be honest: some of the language we use to describe what we do is not language you’d ever say out loud to a normal person.",
+    pairs: [
+      {
+        officialLabel: 'Officially, we say:',
+        official: 'We build mission capability infrastructure for defense and government organizations.',
+        realLabel: 'In real words:',
+        real: 'We build the systems that help the government actually get the tools and technology it needs to do its job — the infrastructure behind the mission, not the mission itself.'
+      },
+      {
+        officialLabel: 'And the fuller version:',
+        official: 'Collaboration.Ai connects what exists to what’s needed, and carries that knowledge through to solve an organization’s most pressing problems.',
+        realLabel: 'In real words:',
+        real: 'We help defense and government agencies find solutions that already exist instead of building everything from scratch, and we stick around to make sure it actually gets used, not just handed off.'
+      }
+    ]
+  },
+
   /* ---- 5. WHY THIS MATTERS ---- */
   matters: {
     anchor: '1977',
@@ -128,8 +143,7 @@ const CFG = {
   close: {
     anchorLine: 'Collaboration.Ai connects what exists to what’s needed, and carries that knowledge through to solve an organization’s most pressing problems.',
     updateEyebrow: 'One practical update',
-    updates: ['Underway: a full website redesign.', 'In progress: evaluating agencies for a full rebrand.'],
-    final: 'Same line. Every room. Starting now.'
+    updates: ['Underway: a full website redesign.', 'In progress: evaluating agencies for a full rebrand.']
   },
 
   /* ---- VOTER PAGE (phones) ---- */
@@ -140,28 +154,11 @@ const CFG = {
     prompt: 'What do we call it now?',
     locked: 'Locked in',
     change: 'Tap another to change your answer.',
+    notSaved: 'That didn’t save. Call your answer out instead.',
     offline: 'Can’t reach the poll. Call your answer out instead.'
   },
 
   /* ---- FALLBACK / PRESENTER KEYS ---- */
-  /* ---- PERSONAL PHONE REACTIONS. Picked at random per phone per round,
-     so four rounds of the same person getting it right or wrong doesn't
-     repeat itself. Go as big as you want, this is the fun part. ---- */
-  reactions: {
-    good: [
-      { big: "YOU'RE AMAZING.", sub: 'Flawless. A legend, honestly.' },
-      { big: 'PERFECT.', sub: 'Somebody give this person a raise.' },
-      { big: 'INCREDIBLE.', sub: "They knew it. Of course they knew it." },
-      { big: 'GENIUS.', sub: 'History will remember this moment.' }
-    ],
-    bad: [
-      { big: 'OH NO.', sub: 'Devastating. Truly heartbreaking.' },
-      { big: 'YIKES.', sub: "This is fine. Everything is fine." },
-      { big: 'WRONG.', sub: 'An absolute travesty. Never forget this.' },
-      { big: 'BRUTAL.', sub: 'We do not speak of this again.' }
-    ]
-  },
-
   keys: {
     help: [
       ['→ / Space / click', 'next beat'],
@@ -188,7 +185,7 @@ const CFG = {
   --accent-ink:#3E6478;
   --rule:#D3CFC5;          /* paper, nudged toward the accent */
   --muted:#6C7479;         /* grey with a blue bias, chosen not inherited */
-  --stageframe:#F2F0EC;
+  --stageframe:#0D0F10;
   --display:'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
   --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
   /* the four decks in section 4 use the sans nobody chooses on purpose */
@@ -302,8 +299,12 @@ body{
   border:1px solid var(--rule);box-shadow:14px 14px 0 rgba(143,184,201,.28);
 }
 .qrcard canvas{display:block;width:268px;height:268px;image-rendering:pixelated}
-.qrfail{width:268px;height:268px;display:grid;place-items:center;text-align:center;
-  font-family:var(--mono);font-size:12px;color:var(--muted);padding:16px}
+.qrfail{width:268px;height:268px;overflow:hidden;padding:22px;
+  font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--muted)}
+.qrfail b{display:block;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:#A5482B;font-weight:600;margin-bottom:14px}
+.qrfail p+p{margin-top:14px}
+.qrfail code{color:var(--accent-ink)}
 .joinurl{
   font-family:var(--mono);font-size:14px;color:var(--accent-ink);
   word-break:break-all;max-width:420px;
@@ -344,32 +345,6 @@ body{
   text-transform:uppercase;color:var(--muted);margin-top:16px;display:flex;gap:10px;align-items:center}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-ink)}
 .dot.off{background:#C86B4E}
-
-/* the room's own verdict: reacts to whether the majority vote matched
-   the correct answer, not just whether it was displayed correctly */
-.verdict{
-  font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;display:inline-block;margin-top:14px;padding:8px 16px;
-  border-radius:var(--r-sm);opacity:0;transform:scale(.88);
-  transition:opacity 260ms ease, transform 260ms cubic-bezier(.34,1.56,.64,1);
-}
-.verdict.show{opacity:1;transform:scale(1)}
-.verdict.good{
-  background:rgba(143,184,201,.24);color:var(--accent-ink);
-  border:1px solid var(--accent);animation:verdictPulse 900ms ease 1;
-}
-.verdict.bad{
-  background:rgba(165,72,43,.14);color:#A5482B;
-  border:1px solid rgba(165,72,43,.45);animation:verdictShake 420ms ease 1;
-}
-@keyframes verdictPulse{0%{transform:scale(.88)}45%{transform:scale(1.08)}100%{transform:scale(1)}}
-@keyframes verdictShake{
-  0%,100%{transform:translateX(0) scale(1)}
-  20%{transform:translateX(-4px) scale(1)}
-  40%{transform:translateX(4px) scale(1)}
-  60%{transform:translateX(-3px) scale(1)}
-  80%{transform:translateX(3px) scale(1)}
-}
 
 /* ---- shared cross-fade stack (setup card, and the scenes below) ---- */
 .narrow-wrap{margin:auto 0;position:relative;min-height:420px;display:grid}
@@ -490,6 +465,37 @@ body{
 .gridcap p.on{opacity:1}
 
 /* ==================================================================
+   4b. IN REAL WORDS — five lines stack up, nothing leaves. That is a
+   lot of copy for one 720px frame, so the whole block scales to fit
+   the holder instead of being clipped at the bottom.
+   ================================================================== */
+.sc-tr .narrow-wrap{min-height:0;height:524px;display:block;overflow:hidden}
+.sc-tr .tr-block{max-width:1104px;transform-origin:left top}  /* spec: 900px */
+.sc-tr .tr-line{
+  opacity:0;transform:translateY(10px);margin-top:24px;   /* spec: 38px */
+  transition:opacity 420ms ease, transform 420ms ease;
+}
+.sc-tr .tr-line:first-child{margin-top:0}
+.sc-tr .tr-line.on{opacity:1;transform:none}
+.sc-tr .tr-ack{
+  font-size:24px;font-weight:400;font-style:italic;line-height:1.5;
+  letter-spacing:-.008em;color:var(--accent-ink);max-width:700px;
+}
+.sc-tr .tr-official{
+  font-size:30px;font-weight:400;line-height:1.42;
+  letter-spacing:-.012em;color:var(--muted);
+}
+.sc-tr .tr-real{
+  font-size:33px;font-weight:600;line-height:1.4;
+  letter-spacing:-.012em;color:var(--ink);
+}
+.sc-tr .tr-label{
+  display:block;font-family:var(--mono);font-size:13px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--accent-ink);
+  margin-bottom:12px;
+}
+
+/* ==================================================================
    SHARED TYPE SCALE
    ================================================================== */
 .big{font-size:56px;font-weight:500;line-height:1.16;letter-spacing:-.028em;text-wrap:balance}
@@ -534,7 +540,6 @@ body{
   display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
 .clayer7.on{opacity:1}
 .closeline{font-size:44px;font-weight:400;line-height:1.24;letter-spacing:-.02em;text-wrap:balance}
-.finalline{font-size:62px;font-weight:700;line-height:1.08;letter-spacing:-.04em;text-wrap:balance}
 .updates{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--rule);
   width:100%;max-width:660px;text-align:left}
 .updates div{display:flex;gap:22px;align-items:baseline;padding:22px 4px;
@@ -572,43 +577,6 @@ body.voting #voteApp{display:block}
 .vbtn:disabled{opacity:.55;cursor:default}
 .vnote{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--muted)}
 .vnote.warn{color:#A5482B}
-
-/* the personal reaction. covers the whole phone, briefly, then clears. */
-.reaction-flash{
-  position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:1.1rem;pointer-events:none;
-  opacity:0;padding:8vw;text-align:center;
-}
-.reaction-flash.show{animation:flashPop 1600ms ease forwards}
-.reaction-flash .rword{
-  font-family:var(--display);font-weight:700;font-size:clamp(2.6rem,14vw,4.8rem);
-  letter-spacing:-.03em;line-height:1.02;transform:scale(.6) rotate(-3deg);
-}
-.reaction-flash .rsub{
-  font-family:var(--display);font-weight:500;font-size:clamp(1.05rem,4.6vw,1.5rem);
-  letter-spacing:-.01em;opacity:0;max-width:26ch;
-}
-.reaction-flash.good{background:rgba(143,184,201,.96)}
-.reaction-flash.good .rword{color:var(--ink)}
-.reaction-flash.good .rsub{color:rgba(28,31,34,.72)}
-.reaction-flash.bad{background:rgba(165,72,43,.97)}
-.reaction-flash.bad .rword{color:#fff}
-.reaction-flash.bad .rsub{color:rgba(255,255,255,.82)}
-@keyframes flashPop{
-  0%{opacity:0}
-  6%{opacity:1}
-  90%{opacity:1}
-  100%{opacity:0}
-}
-.reaction-flash.show .rword{animation:rwordIn 560ms cubic-bezier(.28,1.85,.5,1) forwards}
-.reaction-flash.show .rsub{animation:rsubIn 420ms ease 260ms forwards}
-@keyframes rwordIn{
-  0%{transform:scale(.6) rotate(-3deg)}
-  55%{transform:scale(1.18) rotate(2deg)}
-  80%{transform:scale(.96) rotate(-1deg)}
-  100%{transform:scale(1) rotate(0)}
-}
-@keyframes rsubIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
 
 @media (prefers-reduced-motion: reduce){
   *{transition-duration:1ms !important;animation-duration:1ms !important}
@@ -852,31 +820,52 @@ const QR = (function(){
 const Poll = (function(){
   const P=CFG.POLL;
   const base='https://api.jsonbin.io/v3/b/'+P.binId;
-  const configured=()=>!/^REPLACE_WITH/.test(P.binId)&&!/^REPLACE_WITH/.test(P.accessKey);
-  const H=()=>({'Content-Type':'application/json','X-Access-Key':P.accessKey,'X-Bin-Meta':'false'});
-
+  const set=v=>!!v&&!/^REPLACE_WITH/.test(v);
+  const configured=()=>set(P.binId)&&(set(P.accessKey)||set(P.masterKey));
+  /* An access key is the narrower credential, so prefer it; fall back to
+     a master key only when that is all that was supplied. */
+  function H(){
+    const h={'Content-Type':'application/json','X-Bin-Meta':'false'};
+    if(set(P.accessKey))h['X-Access-Key']=P.accessKey;
+    else h['X-Master-Key']=P.masterKey;
+    return h;
+  }
+  /* 401/403 means the key lacks a permission — worth saying out loud,
+     because it looks identical to "no network" from the outside. */
+  function fail(kind,status){
+    const e=new Error(kind+' '+status);
+    e.status=status;
+    e.auth=(status===401||status===403);
+    e.missing=(status===404);
+    return e;
+  }
   async function read(){
     const r=await fetch(base+'/latest',{headers:H(),cache:'no-store'});
-    if(!r.ok)throw new Error('read '+r.status);
+    if(!r.ok)throw fail('read',r.status);
     const j=await r.json();
     const rec=(j&&j.record!==undefined)?j.record:j;
     return normalize(rec);
   }
   async function write(rec){
     const r=await fetch(base,{method:'PUT',headers:Object.assign(H(),{'X-Bin-Versioning':'false'}),body:JSON.stringify(rec)});
-    if(!r.ok)throw new Error('write '+r.status);
+    if(!r.ok)throw fail('write',r.status);
     return rec;
   }
+  function reason(e){
+    if(!e)return 'Poll unreachable';
+    if(e.auth)return 'Key lacks read + update permission';
+    if(e.missing)return 'Bin ID not found';
+    return 'Poll unreachable';
+  }
   function normalize(rec){
-    const out={round:0,votes:{},revealed:false};
+    const out={round:0,votes:{}};
     if(rec&&typeof rec==='object'){
       out.round=Number(rec.round)||0;
-      out.revealed=!!rec.revealed;
       if(rec.votes&&typeof rec.votes==='object')out.votes=rec.votes;
     }
     return out;
   }
-  return {configured,read,write,normalize};
+  return {configured,read,write,normalize,reason};
 })();
 </script>
 
@@ -919,7 +908,22 @@ function fitText(node){
   best=Math.max(min,best-1);                 /* sub-pixel headroom */
   node.style.fontSize=best.toFixed(2)+'px';
 }
-function runFits(){document.querySelectorAll('[data-fit]').forEach(fitText);}
+function runFits(){
+  document.querySelectorAll('[data-fit]').forEach(fitText);
+  document.querySelectorAll('[data-fitblock]').forEach(fitBlock);
+}
+/* Scales a whole stack of mixed type down to its holder. Every line is
+   in the layout from the first beat (they only fade in), so this is
+   measured once and nothing reflows as the beats advance. */
+function fitBlock(block){
+  const box=block.parentElement;
+  block.style.transform='none';
+  const h=block.scrollHeight, avail=box.clientHeight;
+  if(!h||!avail)return;
+  const k=Math.min(1,avail/h);
+  block.style.transform=k<1?'scale('+k.toFixed(4)+')':'none';
+  block.dataset.fitscale=k.toFixed(4);
+}
 function fitBox(tag,cls,text,max,min,w,h,align){
   const box=el('div','fitbox');
   box.style.cssText='width:100%;height:'+h+'px;align-items:'+(align||'center')+';justify-content:center';
@@ -1065,12 +1069,10 @@ const Quiz=(function(){
   const status=el('div','qstatus');
   status.innerHTML='<span class="dot"></span><span class="txt"></span>';
   round.appendChild(status);
-  const verdict=el('div','verdict');
-  round.appendChild(verdict);
   node.appendChild(round);
 
   let qrDrawn=false;
-  const state={round:0,revealed:false,remote:{},manual:{},live:Poll.configured(),err:''};
+  const state={round:0,revealed:false,remote:{},manual:{},live:Poll.configured(),err:'',wErr:''};
 
   function tally(r){
     const counts=[0,0,0,0];
@@ -1095,48 +1097,31 @@ const Quiz=(function(){
     });
     const dot=status.querySelector('.dot');
     const txt=status.querySelector('.txt');
-    const ok=state.live&&!state.err;
+    /* Reads and writes fail independently. A read-only key reads fine
+       for ever, so the write error is the one that has to stick. */
+    const msg=state.wErr||state.err;
+    const ok=state.live&&!msg;
     dot.classList.toggle('off',!ok);
-    txt.textContent=ok?'Live':(state.err||'Offline — press 1–4 to tally by hand');
-
-    /* the verdict: did the room's own majority land on the right answer.
-       "good" requires the correct option to be the sole top vote-getter,
-       not just tied for it, so a genuine split doesn't read as a win. */
-    if(state.revealed&&total>0){
-      const maxCount=Math.max(...counts);
-      const topCount=counts.filter(c=>c===maxCount).length;
-      const isGood=topCount===1&&counts[r.correct]===maxCount;
-      const nextClass='verdict show '+(isGood?'good':'bad');
-      /* only touch the DOM when the verdict actually changes. reassigning
-         the identical class on every poll tick was restarting the pulse
-         animation over and over, which read as it flashing on repeat. */
-      if(verdict.className!==nextClass){
-        verdict.textContent=isGood?'Nailed it.':'Not even close.';
-        verdict.className=nextClass;
-      }
-    }else if(verdict.className!=='verdict'){
-      verdict.className='verdict';
-      verdict.textContent='';
-    }
+    txt.textContent=ok?'Live':(msg||'Offline — press 1–4 to tally by hand');
   }
 
   /* --- network loop --- */
-  let timer=null,pushedRound=null,pushedRevealed=null;
-  async function pushState(r,revealed){
-    pushedRound=r;pushedRevealed=revealed;
+  let timer=null,pushedRound=null;
+  async function push(r){
+    pushedRound=r;
     if(!state.live)return;
     try{
       const rec=await Poll.read();
       rec.round=r;
-      rec.revealed=revealed;
       if(!rec.votes)rec.votes={};
-      /* only wipe this round's votes on the fresh-round beat, never on
-         the reveal beat, or a reveal would erase the very votes it's
-         supposed to be judging */
-      if(!revealed)rec.votes[String(r)]={};
+      rec.votes[String(r)]={};                // fresh round, clean slate
       await Poll.write(rec);
-      state.remote=rec.votes;state.err='';
-    }catch(e){state.err='Poll unreachable';}
+      state.remote=rec.votes;state.err='';state.wErr='';
+    }catch(e){
+      const why=Poll.reason(e);
+      if(String((e&&e.message)||'').indexOf('write')===0)state.wErr=why;
+      else state.err=why;
+    }
     paint();
   }
   async function tick(){
@@ -1144,7 +1129,7 @@ const Quiz=(function(){
     try{
       const rec=await Poll.read();
       state.remote=rec.votes||{};state.err='';
-    }catch(e){state.err='Poll unreachable';}
+    }catch(e){state.err=Poll.reason(e);}
     paint();
   }
   function startLoop(){
@@ -1167,20 +1152,26 @@ const Quiz=(function(){
           if(/^REPLACE_WITH/.test(CFG.POLL.voteUrl))throw new Error('placeholder');
           QR.draw(cv,url);
         }catch(e){
-          cv.replaceWith(el('div','qrfail','Set POLL.voteUrl in the CFG block<br>to generate the QR code.'));
+          /* No QR on purpose: the CFG placeholders are still in place. Say so
+             plainly, and keep the raw placeholder text off the screen. */
+          cv.replaceWith(el('div','qrfail',
+            '<b>Poll not configured</b>'+
+            '<p>Fill in <code>POLL.binId</code>, <code>POLL.accessKey</code> and '+
+            '<code>POLL.voteUrl</code> in the CFG block at the top of this file.</p>'+
+            '<p>Until then, press <code>1</code>–<code>4</code> to tally by hand.</p>'));
+          ju.style.display='none';
         }
       }
       if(onJoin){
         state.round=0;state.revealed=false;stopLoop();
-        if(pushedRound!==0)pushState(0,false);
+        if(pushedRound!==0)push(0);
         return;
       }
       const idx=i-1;
       const r=Math.floor(idx/2)+1;
-      const revealed=idx%2===1;
-      state.round=r;state.revealed=revealed;
+      state.round=r;state.revealed=idx%2===1;
       paint();
-      if(pushedRound!==r||pushedRevealed!==revealed)pushState(r,revealed);
+      if(pushedRound!==r){push(r);}
       startLoop();
     },
     leave(){stopLoop();},
@@ -1278,6 +1269,34 @@ SCENES.push(Quiz);
   SCENES.push({node:g,steps:2,apply(i){c1.classList.toggle('on',i===0);c2.classList.toggle('on',i===1);}});
 })();
 
+/* ---- 4b. IN REAL WORDS (1 acknowledgment + 2 pairs = 5 beats) ---- */
+(function(){
+  const T=CFG.translate;
+  const node=el('div','scene');
+  const pad=el('div','pad sc-tr');
+  pad.appendChild(el('div','eyebrow','In real words'));
+  const wrap=el('div','narrow-wrap');
+  const block=el('div','tr-block');
+  block.dataset.fitblock='1';
+  const ack=el('p','tr-line tr-ack',T.ack);
+  block.appendChild(ack);
+  const lines=[ack];
+  T.pairs.forEach(function(p){
+    const off=el('p','tr-line tr-official');
+    off.innerHTML='<span class="tr-label">'+p.officialLabel+'</span>'+p.official;
+    const real=el('p','tr-line tr-real');
+    real.innerHTML='<span class="tr-label">'+p.realLabel+'</span>'+p.real;
+    block.append(off,real);
+    lines.push(off,real);
+  });
+  wrap.appendChild(block);
+  pad.appendChild(wrap);
+  node.appendChild(pad);
+  SCENES.push({node,steps:lines.length,apply(i){
+    lines.forEach(function(el,k){ el.classList.toggle('on',k<=i); });
+  }});
+})();
+
 /* ---- 5. WHY THIS MATTERS (2 beats) ---- */
 (function(){
   const M=CFG.matters;
@@ -1321,7 +1340,7 @@ SCENES.push(Quiz);
   SCENES.push({node,steps:2,apply(i){[l1,l2].forEach((l,k)=>l.classList.toggle('on',k===i));}});
 })();
 
-/* ---- 7. CLOSE (3 beats) ---- */
+/* ---- 7. CLOSE (2 beats) ---- */
 (function(){
   const C=CFG.close;
   const node=el('div','scene');
@@ -1343,13 +1362,10 @@ SCENES.push(Quiz);
   });
   l2.append(eb,box);
 
-  const l3=el('div','clayer7');
-  l3.appendChild(fitBox('p','finalline',C.final,62,30,720,320));
-
-  card.append(l1,l2,l3);
+  card.append(l1,l2);
   pad.appendChild(card);
   node.appendChild(pad);
-  SCENES.push({node,steps:3,apply(i){[l1,l2,l3].forEach((l,k)=>l.classList.toggle('on',k===i));}});
+  SCENES.push({node,steps:2,apply(i){[l1,l2].forEach((l,k)=>l.classList.toggle('on',k===i));}});
 })();
 
 /* ==================================================================
@@ -1442,31 +1458,7 @@ function bootVoter(){
 
   let id=localStorage.getItem('cai_voter_id');
   if(!id){id='v'+Math.random().toString(36).slice(2,10);localStorage.setItem('cai_voter_id',id);}
-  let round=0,myPick=null,pending=null,offline=false,revealed=false,reactedFor=null;
-
-  /* full-screen personal reaction. lives at the body level, above the
-     card, so it covers the whole phone regardless of scroll position. */
-  const flash=el('div','reaction-flash');
-  flash.innerHTML='<div class="rword"></div><div class="rsub"></div>';
-  document.body.appendChild(flash);
-
-  function fireReaction(isRight){
-    const pool=CFG.reactions[isRight?'good':'bad'];
-    const pick=pool[Math.floor(Math.random()*pool.length)];
-    flash.querySelector('.rword').textContent=pick.big;
-    flash.querySelector('.rsub').textContent=pick.sub;
-    flash.className='reaction-flash show '+(isRight?'good':'bad');
-    /* haptic buzz. Android Chrome supports this; iOS Safari never has,
-       so iPhones get the full visual reaction with no vibration. */
-    if(navigator.vibrate)navigator.vibrate(isRight?60:[90,60,90,60,140]);
-    setTimeout(()=>flash.classList.remove('show'),1550);
-  }
-  function maybeReact(){
-    if(!revealed||myPick==null)return;
-    if(reactedFor===round)return;
-    reactedFor=round;
-    fireReaction(myPick===Q.rounds[round-1].correct);
-  }
+  let round=0,myPick=null,pending=null,offline=false,writeFail=false;
 
   function render(){
     head.querySelector('.r').textContent=round?V.roundLabel+' '+round+' / '+Q.rounds.length:'';
@@ -1478,16 +1470,16 @@ function bootVoter(){
       prompt.textContent=V.waiting;
     }
     btns.forEach((b,k)=>{
-      /* locked out once the room's answer is revealed, so nobody can wait
-         for the reveal and then tap the right one to game the reaction */
-      b.disabled=!round||revealed;
+      b.disabled=!round;
       b.setAttribute('aria-pressed',String(myPick===k));
     });
-    note.classList.toggle('warn',offline);
-    note.textContent=offline?V.offline:(myPick!=null?V.locked+'. '+V.change:'');
+    note.classList.toggle('warn',offline||writeFail);
+    note.textContent=offline?V.offline
+      :writeFail?V.notSaved
+      :(myPick!=null?V.locked+'. '+V.change:'');
   }
   async function vote(k){
-    if(!round||revealed)return;
+    if(!round)return;
     myPick=k;pending=k;render();
     await sync(true);
   }
@@ -1499,26 +1491,40 @@ function bootVoter(){
         round=rec.round;
         myPick=null;pending=null;
       }
-      revealed=!!rec.revealed;
       const key=String(round);
       const bucket=rec.votes[key]||{};
       if(pending!=null&&(force||bucket[id]!==pending)){
         rec.votes[key]=Object.assign({},bucket,{[id]:pending});
-        await Poll.write(rec);
+        /* Reading works with a read-only key; writing is what breaks.
+           Keep that visible instead of letting the next read hide it. */
+        try{await Poll.write(rec);writeFail=false;}
+        catch(e){writeFail=true;}
       }else if(bucket[id]!=null){
-        myPick=Number(bucket[id]);pending=myPick;
+        myPick=Number(bucket[id]);pending=myPick;writeFail=false;
       }
       offline=false;
     }catch(e){offline=true;}
     render();
-    maybeReact();
   }
+
+  /* A backgrounded or locked phone cannot see the deck, so it stops
+     asking. Twenty-five idle phones polling all afternoon is the one
+     way this quiz burns through a request quota. */
+  const every=Math.max(1500,CFG.POLL.phonePollMs||CFG.POLL.pollMs||2000);
+  let loop=null;
+  function start(){
+    if(loop||document.hidden)return;
+    loop=setInterval(()=>sync(false),every);
+  }
+  function stop(){if(loop){clearInterval(loop);loop=null;}}
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)stop();
+    else{sync(false);start();}
+  });
+
   render();
   sync(false);
-  /* jittered so every phone in the room doesn't fire in the same instant,
-     which is what actually trips a rate limit even at a modest base rate */
-  const basePhoneMs=Math.max(2000,CFG.POLL.phonePollMs||CFG.POLL.pollMs);
-  setInterval(()=>sync(false),basePhoneMs*(0.85+Math.random()*0.3));
+  start();
 }
 if(isVoter){bootVoter();}
 window.addEventListener('hashchange',()=>{
