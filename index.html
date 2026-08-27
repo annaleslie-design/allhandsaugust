@@ -128,6 +128,21 @@ const CFG = {
   },
 
   /* ---- 5. WHY THIS MATTERS ---- */
+  reactions: {
+    good: [
+      { big: "YOU'RE AMAZING.", sub: 'Flawless. A legend, honestly.' },
+      { big: 'PERFECT.', sub: 'Somebody give this person a raise.' },
+      { big: 'INCREDIBLE.', sub: 'They knew it. Of course they knew it.' },
+      { big: 'GENIUS.', sub: 'History will remember this moment.' }
+    ],
+    bad: [
+      { big: 'OH NO.', sub: 'Devastating. Truly heartbreaking.' },
+      { big: 'YIKES.', sub: 'This is fine. Everything is fine.' },
+      { big: 'WRONG.', sub: 'An absolute travesty. Never forget this.' },
+      { big: 'BRUTAL.', sub: 'We do not speak of this again.' }
+    ]
+  },
+
   matters: {
     anchor: '1977',
     anchorNote: 'illusory truth effect, first documented',
@@ -345,6 +360,29 @@ body{
   text-transform:uppercase;color:var(--muted);margin-top:16px;display:flex;gap:10px;align-items:center}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--accent-ink)}
 .dot.off{background:#C86B4E}
+.verdict{
+  font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;display:inline-block;margin-top:14px;padding:8px 16px;
+  border-radius:var(--r-sm);opacity:0;transform:scale(.88);
+  transition:opacity 260ms ease, transform 260ms cubic-bezier(.34,1.56,.64,1);
+}
+.verdict.show{opacity:1;transform:scale(1)}
+.verdict.good{
+  background:rgba(143,184,201,.24);color:var(--accent-ink);
+  border:1px solid var(--accent);animation:verdictPulse 900ms ease 1;
+}
+.verdict.bad{
+  background:rgba(165,72,43,.14);color:#A5482B;
+  border:1px solid rgba(165,72,43,.45);animation:verdictShake 420ms ease 1;
+}
+@keyframes verdictPulse{0%{transform:scale(.88)}45%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes verdictShake{
+  0%,100%{transform:translateX(0) scale(1)}
+  20%{transform:translateX(-4px) scale(1)}
+  40%{transform:translateX(4px) scale(1)}
+  60%{transform:translateX(-3px) scale(1)}
+  80%{transform:translateX(3px) scale(1)}
+}
 
 /* ---- shared cross-fade stack (setup card, and the scenes below) ---- */
 .narrow-wrap{margin:auto 0;position:relative;min-height:420px;display:grid}
@@ -577,6 +615,36 @@ body.voting #voteApp{display:block}
 .vbtn:disabled{opacity:.55;cursor:default}
 .vnote{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--muted)}
 .vnote.warn{color:#A5482B}
+.reaction-flash{
+  position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1.1rem;pointer-events:none;
+  opacity:0;padding:8vw;text-align:center;
+}
+.reaction-flash.show{animation:flashPop 1600ms ease forwards}
+.reaction-flash .rword{
+  font-family:var(--display);font-weight:700;font-size:clamp(2.6rem,14vw,4.8rem);
+  letter-spacing:-.03em;line-height:1.02;transform:scale(.6) rotate(-3deg);
+}
+.reaction-flash .rsub{
+  font-family:var(--display);font-weight:500;font-size:clamp(1.05rem,4.6vw,1.5rem);
+  letter-spacing:-.01em;opacity:0;max-width:26ch;
+}
+.reaction-flash.good{background:rgba(143,184,201,.96)}
+.reaction-flash.good .rword{color:var(--ink)}
+.reaction-flash.good .rsub{color:rgba(28,31,34,.72)}
+.reaction-flash.bad{background:rgba(165,72,43,.97)}
+.reaction-flash.bad .rword{color:#fff}
+.reaction-flash.bad .rsub{color:rgba(255,255,255,.82)}
+@keyframes flashPop{0%{opacity:0}6%{opacity:1}90%{opacity:1}100%{opacity:0}}
+.reaction-flash.show .rword{animation:rwordIn 560ms cubic-bezier(.28,1.85,.5,1) forwards}
+.reaction-flash.show .rsub{animation:rsubIn 420ms ease 260ms forwards}
+@keyframes rwordIn{
+  0%{transform:scale(.6) rotate(-3deg)}
+  55%{transform:scale(1.18) rotate(2deg)}
+  80%{transform:scale(.96) rotate(-1deg)}
+  100%{transform:scale(1) rotate(0)}
+}
+@keyframes rsubIn{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
 
 @media (prefers-reduced-motion: reduce){
   *{transition-duration:1ms !important;animation-duration:1ms !important}
@@ -858,9 +926,10 @@ const Poll = (function(){
     return 'Poll unreachable';
   }
   function normalize(rec){
-    const out={round:0,votes:{}};
+    const out={round:0,votes:{},revealed:false};
     if(rec&&typeof rec==='object'){
       out.round=Number(rec.round)||0;
+      out.revealed=!!rec.revealed;
       if(rec.votes&&typeof rec.votes==='object')out.votes=rec.votes;
     }
     return out;
@@ -1069,6 +1138,8 @@ const Quiz=(function(){
   const status=el('div','qstatus');
   status.innerHTML='<span class="dot"></span><span class="txt"></span>';
   round.appendChild(status);
+  const verdict=el('div','verdict');
+  round.appendChild(verdict);
   node.appendChild(round);
 
   let qrDrawn=false;
@@ -1103,18 +1174,36 @@ const Quiz=(function(){
     const ok=state.live&&!msg;
     dot.classList.toggle('off',!ok);
     txt.textContent=ok?'Live':(msg||'Offline — press 1–4 to tally by hand');
+    /* only touch the DOM when the verdict actually changes; reassigning the
+       same class every poll tick restarts the animation and reads as flashing */
+    if(state.revealed&&total>0){
+      const maxCount=Math.max(...counts);
+      const topCount=counts.filter(c=>c===maxCount).length;
+      const isGood=topCount===1&&counts[r.correct]===maxCount;
+      const nextClass='verdict show '+(isGood?'good':'bad');
+      if(verdict.className!==nextClass){
+        verdict.textContent=isGood?'Nailed it.':'Not even close.';
+        verdict.className=nextClass;
+      }
+    }else if(verdict.className!=='verdict'){
+      verdict.className='verdict';
+      verdict.textContent='';
+    }
   }
 
   /* --- network loop --- */
-  let timer=null,pushedRound=null;
-  async function push(r){
-    pushedRound=r;
+  let timer=null,pushedRound=null,pushedRevealed=null;
+  async function pushState(r,revealed){
+    pushedRound=r;pushedRevealed=revealed;
     if(!state.live)return;
     try{
       const rec=await Poll.read();
       rec.round=r;
+      rec.revealed=revealed;
       if(!rec.votes)rec.votes={};
-      rec.votes[String(r)]={};                // fresh round, clean slate
+      /* only wipe this round's votes on the fresh-round beat, never on the
+         reveal beat, or a reveal would erase the votes it is judging */
+      if(!revealed)rec.votes[String(r)]={};
       await Poll.write(rec);
       state.remote=rec.votes;state.err='';state.wErr='';
     }catch(e){
@@ -1164,14 +1253,15 @@ const Quiz=(function(){
       }
       if(onJoin){
         state.round=0;state.revealed=false;stopLoop();
-        if(pushedRound!==0)push(0);
+        if(pushedRound!==0)pushState(0,false);
         return;
       }
       const idx=i-1;
       const r=Math.floor(idx/2)+1;
-      state.round=r;state.revealed=idx%2===1;
+      const revealed=idx%2===1;
+      state.round=r;state.revealed=revealed;
       paint();
-      if(pushedRound!==r){push(r);}
+      if(pushedRound!==r||pushedRevealed!==revealed)pushState(r,revealed);
       startLoop();
     },
     leave(){stopLoop();},
@@ -1188,7 +1278,7 @@ const Quiz=(function(){
     toggleLive(){
       state.live=!state.live&&Poll.configured();
       state.err='';
-      if(state.live){push(state.round);startLoop();}else stopLoop();
+      if(state.live){pushState(state.round,state.revealed);startLoop();}else stopLoop();
       paint();return state.live;
     }
   };
@@ -1458,7 +1548,29 @@ function bootVoter(){
 
   let id=localStorage.getItem('cai_voter_id');
   if(!id){id='v'+Math.random().toString(36).slice(2,10);localStorage.setItem('cai_voter_id',id);}
-  let round=0,myPick=null,pending=null,offline=false,writeFail=false;
+  let round=0,myPick=null,pending=null,offline=false,writeFail=false,revealed=false,reactedFor=null;
+  /* full-screen personal reaction, at body level so it covers the whole
+     phone regardless of scroll position */
+  const flash=el('div','reaction-flash');
+  flash.innerHTML='<div class="rword"></div><div class="rsub"></div>';
+  document.body.appendChild(flash);
+  function fireReaction(isRight){
+    const pool=CFG.reactions[isRight?'good':'bad'];
+    const pick=pool[Math.floor(Math.random()*pool.length)];
+    flash.querySelector('.rword').textContent=pick.big;
+    flash.querySelector('.rsub').textContent=pick.sub;
+    flash.className='reaction-flash show '+(isRight?'good':'bad');
+    /* Android Chrome supports vibrate; iOS Safari never has, so iPhones
+       get the visual reaction only */
+    if(navigator.vibrate)navigator.vibrate(isRight?60:[90,60,90,60,140]);
+    setTimeout(()=>flash.classList.remove('show'),1550);
+  }
+  function maybeReact(){
+    if(!revealed||myPick==null)return;
+    if(reactedFor===round)return;
+    reactedFor=round;
+    fireReaction(myPick===Q.rounds[round-1].correct);
+  }
 
   function render(){
     head.querySelector('.r').textContent=round?V.roundLabel+' '+round+' / '+Q.rounds.length:'';
@@ -1470,7 +1582,9 @@ function bootVoter(){
       prompt.textContent=V.waiting;
     }
     btns.forEach((b,k)=>{
-      b.disabled=!round;
+      /* locked once the answer is revealed, so nobody can wait for the
+         reveal and then tap the right one to game the reaction */
+      b.disabled=!round||revealed;
       b.setAttribute('aria-pressed',String(myPick===k));
     });
     note.classList.toggle('warn',offline||writeFail);
@@ -1479,7 +1593,7 @@ function bootVoter(){
       :(myPick!=null?V.locked+'. '+V.change:'');
   }
   async function vote(k){
-    if(!round)return;
+    if(!round||revealed)return;
     myPick=k;pending=k;render();
     await sync(true);
   }
@@ -1491,6 +1605,7 @@ function bootVoter(){
         round=rec.round;
         myPick=null;pending=null;
       }
+      revealed=!!rec.revealed;
       const key=String(round);
       const bucket=rec.votes[key]||{};
       if(pending!=null&&(force||bucket[id]!==pending)){
@@ -1505,6 +1620,7 @@ function bootVoter(){
       offline=false;
     }catch(e){offline=true;}
     render();
+    maybeReact();
   }
 
   /* A backgrounded or locked phone cannot see the deck, so it stops
